@@ -1,0 +1,14 @@
+DTD 3 DEV LOG:
+This file is essentially a todo; it contains all of the changes and fixes that need
+to be implemented into DTD before we can go live with v3.0.0.
+
+To do:
+- Fix Expert Mode.
+- Clean up legacy code.
+- Integrate items into some sort of class system (objects with attributes rather
+than a bunch of ranodm variables floating around in the code.)
+- Complete the removal of older features (themes, certain global variables, old dev
+tools, etc...)
+- Finish adding music player descriptions.
+- General bugfixes.
+- Fix the battle system; finish migrating enemies over to a native class system.
