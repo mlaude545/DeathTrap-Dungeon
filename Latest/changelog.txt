@@ -1,1 +1,227 @@
+This is a hotfix update, meaning that a serious bug was discovered after
+the release of DTD V2.9. This update aims to patch out the following issues:
 
+-Fixed numerous flaws with the update system; the Windows version of the game
+ would crash when viewing a new release's changelog, and all versions of the 
+ game encountered issues when downloading updates.
+
+-Fixed more menu-related bugs.
+
+-Fixed a bug where save files the game was beaten under would display incorrectly
+ sometimes.
+
+The original changelog for DTD V2.9 can be found below:
+
+====================================
+
+-The story has finally been completed! See if you can overcome the challenge 
+ and beat 
+the game! You never know, you may unlock something cool as a reward…
+
+
+
+-Much of the game’s artwork has been updated, and now looks much more detailed!
+
+
+
+-Certain sections of the story have been entirely rewritten from scratch! This 
+ is a needed 
+change as the quality of my writing has increased since I initially 
+ started working on the game.
+
+
+
+-The system used for handling updates has been rebuilt from the ground up; it’s 
+ now much 
+simpler and allows for downloading updates straight through the game 
+ without even having 
+to launch your browser, in addition to some other cool features.
+
+-The update server has also gone through some major changes, which allow for
+ update checks to be much more reliable and speedy.
+
+
+
+-The UI receives a much needed overhaul! Menus have been redesigned, dialog has 
+ been 
+rewritten... pretty much every single UI element has been retouched; the 
+ result it an interface 
+that feels both fresh and familiar, and is more consistent 
+ than ever before.
+
+
+
+-Error messages have all been revised; the wording has been tweaked to make the 
+ problem 
+easier to diagnose, and additional options have been added allowing you to 
+ see the exact cause 
+of the error, or even get help online.
+
+-The entirety of the soundtrack has been remixed and re-recorded; these new mixes follow
+ all the same motifs as the classic soundtrack and are instantly recogniseable by veteran
+ players, however the new sound is fresher than ever.
+
+
+
+-Improved error support; errors are now logged to a file, making finding help easier
+ than ever!
+
+
+
+-A new feature has been added to the “Options” screen, allowing you to report any bugs 
+ you may 
+encounter! 
+
+
+
+-A new feature has been added, which optimises the game for use on smaller displays! 
+ To enable 
+this, enter the Options screen and select “Display Settings”, then choose 
+ “Optimise for smaller 
+display”.
+
+
+
+-Added a new ‘Examine’ option during battles! This allows you to instantly check handy 
+ info, such
+as the enemy’s health, attack damage, and even their held item!
+
+
+
+-Many quality-of-life improvements across the board; faster load times, speedier navigation… 
+ it
+ all adds up to make the game even more enjoyable.
+
+
+
+-The game now sports a new logo!
+
+
+
+-Downloading and installing modules from within the game just got a whole lot easier! The 
+ entire
+ system has been re-engineered; modules now download far quicker, and the experience 
+ has been
+ streamlined.
+
+
+
+-Save Data Conversion Utility has been upgraded to V1.7! This update brings support for upgrading
+
+ save data created in DTD V2.8 to the new save format used in this version, as well as performance
+
+ and stability improvements.
+
+
+
+-Save Data Recovery Utility has been upgraded to V1.5! This update brings support for the new 
+
+ save format in use in this version of the game, as well as performance and stability 
+ enhancements.
+
+
+
+-Certain sections of the game with delays between lines have been sped up.
+
+
+
+-The post-battle screen has been redesigned; items dropped by guards now give detailed 
+ descriptions 
+on what they do/what stats they affect.
+
+
+
+-Many new tracks have been added! Namely the final boss theme, the credits theme, the 
+ post-credits
+ theme, and many more.
+
+
+
+-Fixed a bug where fleeing from battles wouldn’t work properly.
+
+
+
+-Fixed a bug where missing audio data would cause the game to crash.
+
+
+
+-Fixed a bug which caused the player’s name to be erased upon converting a save file.
+
+
+
+-Fixed a bug where the game would crash when checking for updates if the player was offline.
+
+
+
+-Fixed a bug where using the smokescreen wouldn’t work correctly.
+
+
+
+-Fixed a bug where save data couldn’t be deleted if it was corrupt/incompatible.
+
+
+
+-Fixed a bug which would cause the game to crash upon attempting to install modules without 
+ an 
+internet connection.
+
+
+
+-Fixed a bug which caused certain inventory items to duplicate.
+
+-Fixed a bug which made it impossible to delete a corrupt or incompatible save file.
+
+
+
+-Fixed a bug where save data could be corrupted if the game was exited during a save.
+
+
+
+-Fixed a bug where health during battles could be displayed below zero.
+
+
+
+-Fixed many more menu-related bugs
+
+
+
+-Many performance improvements and smaller bugfixes.
+
+====================================
+
+
+
+So there it is; the huge list of everything new in DeathTrap Dungeon V2.9! As briefly 
+mentioned above,
+the loss of Mr. Chapple is what sparked me to finish this game; if it 
+wasn’t for him, this game wouldn’t
+even exist. I still can’t get over how far this game 
+has come, and without the continued support of him
+and many other people, it would never
+have been possible.
+
+
+
+Also, this release is planned to be the final major release of DeathTrap Dungeon, 
+with a bugfix update
+planned for the near future. It’s gonna be a shame to leave 
+this game in the past, but rest assured this
+won’t be the last time you see my name 
+on a piece of software. I owe so much to this game; the amount 
+of stuff I’ve learned 
+whilst working on it over the past three years is truly something.
+
+
+
+And finally, thanks to you, the player; by simply playing this game, you’ve fuelled my passion 
+for programming
+and have acted as the major driving force behind the game being in the finished 
+state it’s in now. It 
+wouldn’t have ever been possible without you, and I hope you stick around
+for my future projects.
+
+
+
+Hey, thanks for reading this far! As always, please be sure to report any bugs you may encounter, 
+and 
+enjoy the game!
