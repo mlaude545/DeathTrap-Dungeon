@@ -1,14 +1,49 @@
 DTD 3 DEV LOG:
-This file is essentially a todo; it contains all of the changes and fixes that need
-to be implemented into DTD before we can go live with v3.0.0.
+This is a list of the main things that I want to do with the release of DTD 3.0.0
 
-To do:
+
+TO DO:
 - Fix Expert Mode.
 - Clean up legacy code.
 - Integrate items into some sort of class system (objects with attributes rather
-than a bunch of ranodm variables floating around in the code.)
+than a bunch of random variables floating around in the code.)
+	> Semi - complete, still got to integrate it fully.
 - Complete the removal of older features (themes, certain global variables, old dev
 tools, etc...)
+	> Themes gone.
+	> Debating the removal of the Save Data Conversion Utility? The save system is at a stable 			 point now and the chances of saves being corrupted accidentally is slim - it's just unnecessary overhead for a worst-case scenario that will probably never happen.
 - Finish adding music player descriptions.
 - General bugfixes.
 - Fix the battle system; finish migrating enemies over to a native class system.
+- Add a "What's New?" option to the Advanced Settings menu.
+- Add a flag to the end of the DTD Identifier variable for the Windows Executable version. 
+	> IE: "DTD v3.0.0 Windows Executable" as opposed to just "DTD v3.0.0"
+	> This will allow the check for dependencies to be much more reliable for the .dll files.
+- Add support for the new save format in the Save Data Conversion Utility.
+- Depreciate all old battle functions (musicBattle, juniperMusic, encounterEnemyName, etc...)
+
+COMPLETED FEATURES / PATCHES:
+Please note that this list isn't comprehensive; it's just additions effective from the writing of this list (2/2/24) - a full list of implementations can be found in the changelog.
+- Migrated the save/load menus over to the new save system.
+- Changed save format to better reflect the game's new codebase.
+- Tied the legacy SavePoint variable to a Player attribute.
+- Categorised the inventory into a dictionary, which is a Player attribute.
+- Items are now in a class along with their artwork and descriptions, which hugely tidies up the code.
+- Battles are now almost completely migrated over to the new system.
+- Prompt is now shown to convert an incompatible save file.
+- Save Data Conversion Utility updated to support the new save format.
+- Depreciated the following:
+	> MusicBattle, JuniperMusic
+	> encounterGuard, encounterHighRank, encounterJuniper
+	
+
+
+LINES OF CODE PER VERSION:
+Just a bit of fun, to highlight how much more efficient new builds of DTD are.
+v2.9.5 (The last stable version released) - 6,649
+v3.0.0 Beta 1 - 7,257
+Beta 2 - 7,672
+Beta 3 - 8,201
+Beta 4 - 9,177 (This one was bloated)
+Beta 5 - 8,340
+Beta 6 (Current) - 6,248 so far, and still going down!
