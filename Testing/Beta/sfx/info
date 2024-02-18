@@ -1,0 +1,5 @@
+IMPORTANT:
+This verison of the SFX folder is different than the one featured in DTD 2.9.5 - audio now uses a different format for 
+audio (.ogg as opposed to .mp3 and .wav). Additionally, several filenames have been changed. If you are beta testing
+DTD, please make sure you use this SFX folder only for beta versions and not for stable versions - the file structures
+are not cross compatible, so you may encounter a whole range of errors and crashes.
