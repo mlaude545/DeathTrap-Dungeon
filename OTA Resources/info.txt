@@ -1,0 +1,3 @@
+This folder contains resources to be accesed when the game is performing an OTA update, such as binaries and
+other files needed during the upgrade process. It is not designed to be used standalone; for the latest 
+version of DTD, navigate up a directory and use the 'Latest' folder.
