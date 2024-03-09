@@ -11,13 +11,13 @@
 # this game, or want to report a bug, please use the 'Report a Bug' option in-game in the Settings menu.
 
 # Import the needed libraries
-import random, pickle, os, webbrowser, getpass, platform, io, threading, itertools, sys, time, socket, shutil
+import random, pickle, os, webbrowser, platform, threading, itertools, sys, time, socket
 from urllib.request import urlretrieve
 from pathlib import Path
 
 # Initialise global variables
-current_version = b"3.0.0"  # Version of this release of DTD.
-internal_identifier = "DTD v3.0.0 BETA 6"   # A more friendly version identifier, which is shown to the user.
+current_version = b"3.0.0"  # Version of this release of DTD, used when checking for updates.
+internal_identifier = "DTD v3.0.0 BETA"   # A more friendly version identifier, which is shown to the user.
 checked_for_update = False  # This changes to True after the game has checked for updates, provided auto updates are enabled.
 is_beta = True   # Set this to True if this is a beta copy of DTD, else it should be False
 
@@ -145,7 +145,7 @@ if basic_graphics_enabled is True or basic_graphics_enabled is [True]:
 
 try:    # Checks if the host supports unicode graphics.
     sys.stdout.write("█")
-except Exception:
+except Exception:   # If unicode characters can't be displayed, show a warning and enable Basic Graphics mode.
     basic_graphics_enabled = True
     automaticallyEnabledBasicGraphics = True
     print("\n== INFORMATION ==\nYour system does not appear to support unicode characters, so Basic Graphics mode has\nbeen enabled. This means that menus and in-game graphics will be rendered in a \nless detailed way. For more info, go to Settings > Graphics > Basic Graphics Mode.")
@@ -163,7 +163,7 @@ if classic_theme_enabled == [False]:
     classic_theme_enabled = False
 
 
-def generate_header(title):
+def generate_header(title):  # This function is used throughout the game to render headings for menus.
     global basic_graphics_enabled, classic_theme_enabled
     if not basic_graphics_enabled and not classic_theme_enabled:
         unformatted_title = '\n█ '+str(title)+': ░▒▒██████████████████████'  # Generate a header with over 34 characters
@@ -171,26 +171,28 @@ def generate_header(title):
         difference = unformatted_length - 35    # Menus in the Flow style are 34 characters wide, so work out the difference between the length of the generated header and where we want it to be.
         header = unformatted_title[:-difference]    # Removes the excess end characters
     else:
-        header = '\n== '+str(title)+' =='
-    return header
+        header = '\n== '+str(title)+' =='   # Generate headers for the Classic Theme and Basic Graphics Mode styles.
+    return header   # Return the header.
 
 
+# Try to import the Pygame library; this handles audio.
 try:
     import pygame
     pygame.mixer.init()
-except Exception:
-    no_pygame = True
+except Exception:   # If Pygame can't be imported, show a warning and mute audio to avoid crashes.
+    no_pygame = True    # Raise the no_pygame flag, so the game knows not to let the player unmute audio.
     mute_audio = True
     print(generate_header("UNABLE TO IMPORT MODULE"))
     print("The Pygame library could not be imported. This library handles all of the game's audio, so audio will be muted in order to keep the game running. For\nhelp fixing this error, please visit: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
 
+# Try to import the necessary libraries for checking for updates.
 try:
     import ssl
     import urllib.request
 except Exception:
     skipUpdateCheck = True
 
-try:
+try:    # Open the file containing gameplay settings, and apply them.
     with open('gameplay_settings.dat', 'rb') as f:
         disable_critical, player_only_critical, enemy_only_critical, disableOverwrite, skipOverwriteConfirmation = pickle.load(
             f)
@@ -207,51 +209,7 @@ if disableOverwrite == [True]:
 if skipOverwriteConfirmation == [True]:
     skipOverwriteConfirmation = True
 
-class Spinner:
-    def __init__(self, message, delay=0.1):
-        self.spinner = itertools.cycle(['-', '/', '|', '\\'])
-        self.delay = delay
-        self.busy = False
-        self.spinner_visible = False
-        sys.stdout.write(message)
 
-    def write_next(self):
-        with self._screen_lock:
-            if not self.spinner_visible:
-                sys.stdout.write(next(self.spinner))
-                self.spinner_visible = True
-                sys.stdout.flush()
-
-    def remove_spinner(self, cleanup=False):
-        with self._screen_lock:
-            if self.spinner_visible:
-                sys.stdout.write('\b')
-                self.spinner_visible = False
-                if cleanup:
-                    sys.stdout.write(' ')  # overwrite spinner with blank
-                    sys.stdout.write('\r')  # move to next line
-                sys.stdout.flush()
-
-    def spinner_task(self):
-        while self.busy:
-            self.write_next()
-            time.sleep(self.delay)
-            self.remove_spinner()
-
-    def __enter__(self):
-        if sys.stdout.isatty():
-            self._screen_lock = threading.Lock()
-            self.busy = True
-            self.thread = threading.Thread(target=self.spinner_task)
-            self.thread.start()
-
-    def __exit__(self, exception, value, tb):
-        if sys.stdout.isatty():
-            self.busy = False
-            self.remove_spinner(cleanup=True)
-        else:
-            sys.stdout.write('\r')
-    
 class Enemy:
     def __init__(self, guard_type, guard_damage, guard_maxhealth, guard_health, held_item):
         self.guard_type = guard_type
@@ -505,6 +463,10 @@ class Player:
     def get_defensive_items(self):
         return self.defensive_items
 
+    def update_defensive_items(self, item_name):
+        self.defensive_items.append(str(item_name))
+        return
+
 
 try:
     with open('updateprefs.dat', 'rb') as f:
@@ -515,7 +477,7 @@ except Exception:
         pickle.dump([skipUpdateCheck], f, protocol=2)
 
 
-class BattleLogic:  # TODO: Migrate battle controls to this BattleLogic class.
+class BattleLogic:  # This class contains the various logic functions used within battles.
     def __init__(self, enemy_type, music_track):
         self.enemy_type = enemy_type
         self.music_track = music_track
@@ -564,7 +526,6 @@ class BattleLogic:  # TODO: Migrate battle controls to this BattleLogic class.
         else:
             return False
 
-
     def handle_player_death(self):  # Does what it says on the tin; handles the player's death.
         self.stop_music()
         game_over()
@@ -576,6 +537,8 @@ class Items:
         self.item_sprite = ""
         self.basic_sprite = ""
         self.item_description = ""
+        self.attack_value = 0
+        self.defense_value = 0
         if self.item_name == "Smokescreen":
             self.item_description = "\nA fairly uncommon item that can be used during battles. When deployed, the battlefield is shrouded in thick\nsmoke, granting a 100% chance of escaping form battle unharmed!\n"
             self.item_sprite = r"""                       .')             _
@@ -592,6 +555,7 @@ class Items:
                       ` __.:'-'"""
             self.basic_sprite = self.item_sprite
         if self.item_name == "Wooden Spear":
+            self.attack_value = 2
             self.item_description = "\nA basic wooden spear. It's nothing special, but it's a lot more effective than using the shard of glass.\n\n       Attack +2\n         Defence +0\n"
             self.item_sprite = r"""                                                                    ▓▓▓▓▓▓▓▓
                                                                   ██▒▒░░░░██
@@ -633,6 +597,7 @@ class Items:
 """
             self.basic_sprite = r"========[>"
         if self.item_name == "Wooden Shield":
+            self.defense_value = 2
             self.item_description = "\nA basic wooden shield. Chips and cracks adorn the surface, but it should \nstill offer some protection in a pinch.\n\n       Attack +0\n         Defence +2\n"
             self.item_sprite = r"""                ██████                
               ██▒▒▒▒▒▒██              
@@ -696,6 +661,7 @@ class Items:
   |.  '| /      
   |____|/"""
         if self.item_name == "Rusty Sword":
+            self.attack_value = 3
             self.item_description = "\nA well-used sword. It's a little rusty, but should still offer some decent attack power.\n\n       Attack +3\n         Defence +0\n"
             self.item_sprite = r"""                          ██████
                         ██░░░░██
@@ -758,6 +724,7 @@ class Items:
   Yb,          ,dP 
    "Ya,______,rP'"""
         if self.item_name == "Rusty Chestplate":
+            self.defense_value = 3
             self.item_description = "\nA well-worn chestplate. It's clearly seen many battles and has lost some \nprotection as a result, but it's still got some life left in it.\n\n       Attack +0\n         Defence +3\n"
             self.item_sprite = r"""
           .=='\   /`==.
@@ -814,6 +781,12 @@ class Items:
     def get_item_description(self):
         return self.item_description
 
+    def get_attack_increment(self):
+        return self.attack_value
+
+    def get_defense_increment(self):
+        return self.defense_value
+
 
 def generate_error_message(description, e):  # This function displays error messages, taking basic and advanced error info as parameters to display to the user.
     print(generate_header("CRASH HANDLER"))
@@ -835,131 +808,112 @@ def generate_error_message(description, e):  # This function displays error mess
 
 
 def generate_defensive_item_list(player_max_health, damage):
-    defensive_items = ['[NONE]']                       # This function is used to when converting save files from
+    defensive_items = ['[No defensive items]']                     # This function is used when converting save files from
     if player_max_health == 20 and damage == 5:        # older formats. In this version of the game, the player's
-        defensive_items = ['Shard of Glass']           # defensive items (dropped by enemies) are simply saved as an
+        defensive_items = ['shard of glass']           # defensive items (dropped by enemies) are simply saved as an
     elif player_max_health == 20 and damage == 7:      # array. However, older versions of the game didn't do this. This
-        defensive_items = ['Wooden Spear']             # of course leads to a compatibility issue - the player would
+        defensive_items = ['wooden spear']             # of course leads to a compatibility issue - the player would
     elif player_max_health == 22 and damage == 5:      # obviously want to keep their items when they convert a save
-        defensive_items = ['Wooden shield', 'Shard of glass']   # file, but this version of the game saves it in a
+        defensive_items = ['wooden shield', 'shard of glass']   # file, but this version of the game saves it in a
     elif player_max_health == 22 and damage == 7:      # different way.
-        defensive_items = ['Wooden Shield', 'Wooden Spear']
+        defensive_items = ['wooden shield', 'wooden spear']
     elif player_max_health == 20 and damage == 8:       # That's where this function comes in - it takes the player's
-        defensive_items = ['Rusty Sword']               # max health and attack values as parameters, and uses this info
+        defensive_items = ['rusty sword']               # max health and attack values as parameters, and uses this info
     elif player_max_health == 22 and damage == 8:       # to identify the correct item / items that the player must
-        defensive_items = ['Wooden Shield', 'Rusty Sword']  # be holding based off of their stats. It then formats this
+        defensive_items = ['wooden shield', 'rusty sword']  # be holding based off of their stats. It then formats this
     elif player_max_health == 23 and damage == 5:       # data into an array, which can be processed by the conversion
-        defensive_items = ['Rusty Chestplate', 'Shard of Glass']    # algorithm and then saved in the new format.
+        defensive_items = ['rusty chestplate', 'shard of glass']    # algorithm and then saved in the new format.
     elif player_max_health == 23 and damage == 7:
-        defensive_items = ['Rusty Chestplate', 'Wooden Spear']  # This solution is very hacky, and this is actually
+        defensive_items = ['rusty chestplate', 'wooden spear']  # This solution is very hacky, and this is actually
     elif player_max_health == 23 and damage == 8:               # how this idea was implemented in previous versions
-        defensive_items = ['Rusty Chestplate', 'Rusty Sword']   # of DTD. My aim is to leave it be for now (whilst the
+        defensive_items = ['rusty chestplate', 'rusty sword']   # of DTD. My aim is to leave it be for now (whilst the
     elif player_max_health == 25 and damage == 5:               # player base upgrades from older versions to this version
-        defensive_items = ['Rusty Chestplate', 'Wooden Shield', 'Shard of Glass']   # of the game), then depreciate it
+        defensive_items = ['rusty chestplate', 'wooden shield', 'shard of glass']   # of the game), then depreciate it
     elif player_max_health == 25 and damage == 7:               # when the time is right.
-        defensive_items = ['Rusty Chestplate', 'Wooden Shield', 'Wooden Spear']
+        defensive_items = ['rusty chestplate', 'wooden shield', 'wooden spear']
     elif player_max_health == 25 and damage == 8:
-        defensive_items = ['Rusty Chestplate', 'Wooden Shield', 'Rusty Sword']
+        defensive_items = ['rusty chestplate', 'wooden shield', 'rusty sword']
     elif player_max_health == 20 and damage == 10:
-        defensive_items = ['Wooden Spear', 'Rusty Sword']
+        defensive_items = ['wooden spear', 'rusty sword']
     elif player_max_health == 22 and damage == 10:
-        defensive_items = ['Wooden Shield', 'Wooden Spear', 'Rusty Sword']
+        defensive_items = ['wooden shield', 'wooden spear', 'rusty sword']
     elif player_max_health == 23 and damage == 10:
-        defensive_items = ['Rusty Chestplate', 'Wooden Spear', 'Rusty Sword']
+        defensive_items = ['rusty chestplate', 'wooden spear', 'rusty sword']
     elif player_max_health == 25 and damage == 10:
-        defensive_items = ['Rusty Chestplate', 'Wooden Shield', 'Wooden Spear', 'Rusty Sword']
+        defensive_items = ['rusty chestplate', 'wooden shield', 'wooden spear', 'rusty sword']
     return defensive_items
 
-def windowsUpdateAgent():
-    global  debug, destination
-    url = "https://downloads.sourceforge.net/project/deathtrapdungeon/Latest/DTDSetup.exe?ts=gAAAAABh50KlBwxpcpnFuAtCOGLY_hBpFH6FmAK4CDLxt30skBPn5GAtxzKktFNjgM7WkZBEAr-hLbKCKNRyfIQ_Av8lCf2rGw%3D%3D&amp;use_mirror=master&amp;r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fdeathtrapdungeon%2Ffiles%2FLatest%2F"
-    filename = "DTDSetup.exe"
-    usrname = getpass.getuser()
-    destination = f'C:\\Users\\{usrname}\\Downloads\\DTDSetup.exe'
-    with Spinner("Downloading update, this can take a while... "):
-        try:
-            download = urlretrieve(url, destination)
-        except Exception as e:
-            description = "The download was interrupted."
-            generate_error_message(description, e)
-            menu()
-        print("\nSuccessfully downloaded update data! The game cannot be updated whilst it is running, so it will close shortly.\n")
-        time.sleep(5)
-        try:
-            os.startfile(destination)
-        except Exception as e:
-            description = "The downloaded update file could not be opened."
-            generate_error_message(description, e)
-            menu()
-        time.sleep(1)
-        sys.exit(0)
 
-def downloadUpdate():  # Update downloader
-    global debug
-    currentOS = platform.system()  # Checks for the currently running OS, and downloads the correct package accordingly.
-    if currentOS == "Windows":
-        if debug != 0:
-            print("\nDetected OS: Windows")
-        windowsUpdateAgent()
-    else:
-        if debug != 0:
-            print("\nDetected OS: Linux/MacOS")
-        url = "https://sourceforge.net/projects/deathtrapdungeon/files/Latest/Source%20Code/DTD.py/download"
-        print("Receiving data, please wait... (This could take up to 5 minutes depending on your internet connection/hardware.)")
-        filename = "DTD.py"
-        downloads_path = str(Path.home() / "Downloads/DTD.py")
-        try:
-            download = urlretrieve(url, downloads_path)
-        except Exception as e:
-            description = "The download was interrupted."
-            generate_error_message(description, e)
-            menu()
-        with urllib.request.urlopen(url) as Response:
-            Length = Response.getheader('content-length')
-            BlockSize = 1000000  # default value
-            if Length:
-                Length = int(Length)
-                BlockSize = max(4096, Length // 20)
-            if debug != 0:
-                print("UrlLib len, blocksize: ", Length, BlockSize)
-            print("Downloading data...\n")
-            BufferAll = io.BytesIO()
-            Size = 0
-            while True:
-                BufferNow = Response.read(BlockSize)
-                if not BufferNow:
-                    break
-                BufferAll.write(BufferNow)
-                Size += len(BufferNow)
-                if Length:
-                    Percent = int((Size / Length) * 100)
-                    print(f"Download progress: {Percent}%")
-        if debug != 0:
-            print("Buffer All len:", len(BufferAll.getvalue()))
-        print("\nThe latest release of DeathTrap Dungeon has been saved to: " + downloads_path + "\n")
-        time.sleep(0.6)
+def download_latest_source(download_path, url):
+    print("Working...")
+    try:
+        download = urlretrieve(url, download_path)
+    except Exception as e:
+        description = 'General download error; try checking your internet connection.'
+        generate_error_message(description, e)
         menu()
+    print("\nThe latest version of DeathTrap Dungeon was downloaded and saved to: " + str(download_path))
+    menu()
 
+
+def choose_custom_directory(download_path, url):
+    custom_path = input("\nType the path of the directory you'd like to use instead, or type 'cancel' to go back: ")
+    if custom_path == 'cancel':
+        confirm_source_code(download_path, url)
+    else:
+        if not os.path.isdir(custom_path):
+            print("\nThe specified directory could not be found. Check spelling and ensure the path is correct, then try again.")
+            choose_custom_directory(download_path, url)
+        else:
+            download_path = custom_path + "/DTD.py"
+            download_latest_source(download_path, url)
+
+
+def confirm_source_code(download_path, url):
+    try:
+        choice = int(input("\nThe latest version of DeathTrap Dungeon is going to be downloaded to: " + str(
+            download_path) + ".\n1] Continue\n2] Choose a different directory\n--> "))
+        if choice == 1:
+            download_latest_source(download_path, url)
+        elif choice == 2:
+            choose_custom_directory(download_path, url)
+        else:
+            print("\nPlease choose a valid option.")
+            confirm_source_code(download_path, url)
+    except ValueError:
+        print("\nPlease choose a valid option.")
+        confirm_source_code(download_path, url)
 
 def ask_download_update(method_of_access, contents):
     new_version_number = str(contents)
+    new_version_number = new_version_number.replace("b", "")
+    new_version_number = new_version_number.replace("'", "")
+    options = str("1] Download update\n2] Cancel")
+    print(f"\nA new version of DeathTrap Dungeon (v{new_version_number}) is available!")
     if method_of_access == 'auto':
-        print("\nA new version of DeathTrap Dungeon is available!\n1] Download the new version\n2] Cancel\n3] Don't ask again")
-    else:
-        print("\nA new version of DeathTrap Dungeon is available!\n1] Download the New Version\n2] Cancel")
+        options += "\n3] Don't ask again"
+    print(options)
     try:
         choice = int(input("--> "))
     except ValueError:
         ask_download_update(method_of_access, contents)
     if choice == 1:
-        downloadUpdate()
+        user_platform = platform.system()
+        if user_platform == "Windows":
+            os.startfile("updater.exe")
+            sys.exit(0)
+        else:
+            download_path = str(Path.home() / "Downloads/DTD.py")
+            url = 'https://raw.githubusercontent.com/mlaude545/DeathTrap-Dungeon/main/Latest/DTD.py'
+            confirm_source_code(download_path, url)
     elif choice == 2:
-        loadMenu = True
+        menu()
     elif choice == 3 and method_of_access == 'auto':
-        print("\nAutomatic updates have been disabled, and you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by selecting 'Settings' on the main menu, then selecting 'Update settings'.")
+        print("\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by selecting 'Settings' on the main menu, then selecting 'Software Updates'.")
         skipUpdateCheck = True
         with open('updateprefs.dat', 'wb') as f:
             pickle.dump([skipUpdateCheck], f, protocol=2)
+        menu()
 
 
 def check_for_updates(method_of_access):
@@ -1209,8 +1163,9 @@ def show_save_preview(player):                  # This function generates a clea
     print("Health: %i/%i" % (player.get_health(), player.get_max_health()))
     defensive_items = player.get_defensive_items()
     print("\nDEFENSIVE ITEMS:")
-    for item in defensive_items:
-        print("- "+str(item))
+    if defensive_items is not None:
+        for item in defensive_items:
+            print("- "+str(item).title())
     print("\nHELD ITEMS:")
     healing_potion_quantity = player.has_item('Healing Potion')
     hyper_potion_quantity = player.has_item('Hyper Potion')
@@ -1860,13 +1815,7 @@ def postCreditsExpertMode():
     if not mute_audio:
         pygame.mixer.music.load("sfx/curtain_call.ogg")
         pygame.mixer.music.play(0)
-    if not basic_graphics_enabled:
-        try:
-            print("\n█ CONGRATULATIONS! ░▒▒████████████")
-        except Exception:
-            print("\n== CONGRATULATIONS! ==")
-    if basic_graphics_enabled is True:
-        print("\n== CONGRATULATIONS! ==")
+    print(generate_header('CONGRATULATIONS'))
     print(
         "Well done, you've beaten the game on Expert Mode! This is no easy feat; you're truly a DeathTrap Dungeon Master.")
     time.sleep(1)
@@ -1889,6 +1838,7 @@ def postCreditsExpertMode():
             pygame.mixer.music.fadeout(200)
         print(" ")
         menu()
+
 
 def postCredits():  # The screen showed post-credits.
     global mute_audio, basic_graphics_enabled
@@ -1934,10 +1884,12 @@ def postCredits():  # The screen showed post-credits.
         print(" ")
         menu()
 
+
 def restore_cached_stats():  # This function kicks in after you beat Expert Mode. It restores stats and inventory items, then saves.
     global player, player_expert_cache
     player = player_expert_cache
     player.completed_expert_mode()
+
 
 def DTDCredits():
     global mute_audio, creditsRolled, gameBeat, basic_graphics_enabled, expertModeEnabled, player
@@ -2023,16 +1975,38 @@ def juniperAfterMath():
     DTDCredits()
 
 
+def stats_warp():   # This function is responsible for placing the player back in the correct section of the game after
+    global player, area     # viewing stats.
+    save_location = player.get_save_location()
+    if save_location == 0 and area == 0:
+        userMultiChoice()
+    elif save_location == 0 and area == 1:
+        choice2Alternate()
+    elif save_location == 1:
+        choice4()
+    elif save_location == 2:
+        outsideConfinement()
+    elif area == 1:
+        choice2Alternate()
+    elif area == 2:
+        outsideConfinement()
+    elif area == 3:
+        fightSecond()
+    elif area == 4:
+        defeatedHighRank()
+    elif area == 6:
+        courtyardGuardDefeated()
+    elif area == 7:
+        chapterSevenSplit()
+
+
 def ask_view_stats():
-    global player, area, savePoint, basic_graphics_enabled
+    global player
     time.sleep(0.5)
     try:
         choice = int(input("\nWould you like to see your stats?\n1] Yes\n2] No\n--> "))
         if choice == 1:
-            if basic_graphics_enabled:
-                print("\n== YOUR STATS ==")
-            else:
-                print("\n█ YOUR STATS: ░▒▒█████████████████")
+            print(generate_header('YOUR STATS'))
             print(str(player.get_stats()))
         elif choice == 2:
             pass
@@ -2044,51 +2018,52 @@ def ask_view_stats():
         ask_view_stats()
     print(" ")
     time.sleep(2)
-    if savePoint == 0 and area == 0:
-        userMultiChoice()
-    elif savePoint == 0 and area == 1:
-        choice2Alternate()
-    elif savePoint == 1:
-        choice4()
-    elif savePoint == 2:
-        outsideConfinement()
-    elif area == 1:
-        choice2Alternate()
-    elif area == 2:
-        outsideConfinement()
-    elif area == 4:
-        defeatedHighRank()
-    elif area == 6:
-        courtyardGuardDefeated()
-    elif area == 7:
-        chapterSevenSplit()
-    elif area == 8:
-        ChapterTwoGuardEscape()
+    stats_warp()
 
 
-def obtain_dropped_item(sprite, item_description, item_name):
+def obtain_dropped_item(sprite, item_description, item_name, item_attack_increment, item_defense_increment, player_held_defensive_items):
+    global player
+    if debug != 0:
+        player.update_defensive_items('Wooden Spear')
+        print(player_held_defensive_items)
     try:
         choice = int(input("\nThe guard drops a "+str(item_name)+". Pick it up?\n1] Yes\n2] No\n--> "))
         if choice == 1:
-            print("\nYou obtained the "+str(item_name)+"!")
-            time.sleep(1)
-            print(sprite)
-            time.sleep(1)
-            print(item_description)
-            time.sleep(0.5)
-            ask_view_stats()
+            if item_name in player_held_defensive_items:
+                print("\nYou already have this item, you can't carry a second!")
+                ask_view_stats()
+            else:
+                print("\nYou obtained the "+str(item_name)+"!")
+                if item_name != "hyper potion" or "healing potion":
+                    player.update_defensive_items(str(item_name))
+                    if item_attack_increment != 0:  # If the item increases attack power, update player stats accordingly
+                        player.gain_attack(int(item_attack_increment))
+                    if item_defense_increment != 0:
+                        player.gain_defence(int(item_defense_increment))
+                elif item_name == "loaf of bread":
+                    player.restore_health()
+                else:
+                    player.update_inventory(item_name)
+                time.sleep(1)
+                print(sprite)
+                time.sleep(1)
+                print(item_description)
+                time.sleep(0.5)
+                ask_view_stats()
         elif choice == 2:
             print("\nYou didn't pick up the "+str(item_name)+".")
             ask_view_stats()
         else:
             print("\nPlease choose a valid option.")
-            obtain_dropped_item(sprite, item_description, item_name)
+            obtain_dropped_item(sprite, item_description, item_name, item_attack_increment, item_defense_increment)
     except ValueError:
         print("\nPlease choose a valid option.")
-        obtain_dropped_item(sprite, item_description, item_name)
+        obtain_dropped_item(sprite, item_description, item_name, item_attack_increment, item_defense_increment)
+
 
 def enemy_defeated(enemy_type, enemy_object, battle_logic, audio_lockout):  # Logic after the player wins battles.
     global basic_graphics_enabled, player
+    player_held_defensive_items = player.get_defensive_items()
     if enemy_type == 'guard' or enemy_type == 'high_rank_guard':
         enemy_item = enemy_object.get_held_item()
         dropped_item = Items(str(enemy_item))
@@ -2096,9 +2071,11 @@ def enemy_defeated(enemy_type, enemy_object, battle_logic, audio_lockout):  # Lo
             sprite = dropped_item.get_item_sprite()
         else:
             sprite = dropped_item.get_basic_sprite()
+        item_defense_increment = dropped_item.get_defense_increment()
+        item_attack_increment = dropped_item.get_attack_increment()
         item_description = dropped_item.get_item_description()
         item_name = str(dropped_item.get_item_name().lower())  # Retrieve the item name; make it lowercase so it can be added to a string without looking janky.
-        obtain_dropped_item(sprite, item_description, item_name)
+        obtain_dropped_item(sprite, item_description, item_name, item_attack_increment, item_defense_increment, player_held_defensive_items)
     elif enemy_type == 'juniper':
         enemy_type = 'juniper_phase_two'    # Set the enemy_type variable to the correct phase, so Juniper's stats can be reset by encounter_enemy.
         time.sleep(2)
@@ -2157,8 +2134,9 @@ def examine_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):   # Wh
     elif enemy_type == 'juniper_phase_three':
         enemy_name = 'EMPEROR JUNIPER (PHASE THREE):'
     print("\n"+str(player_stats)+"\nHOLDING:")
-    for item in defensive_items:
-        print("- " + str(item))
+    if defensive_items is not None:
+        for item in defensive_items:
+            print("- " + str(item))
     print("\n\n"+str(enemy_name)+str(enemy_stats))
     time.sleep(0.5)
     fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout)
@@ -2189,7 +2167,7 @@ def enemy_attack_player(enemy_type, enemy_object, battle_logic, audio_lockout):
     global player, disable_critical, player_only_critical, expertModeEnabled
     enemy_friendly_name = 'not specified'   # This variable controls the text that is shown on the enemy's turn.
     returned_value = 0  # This variable is the damage that is dealt by an enemy.
-    attack_message = '\n'   # This is used to let the player know they've recieved a critical hit. By default, it's a new line.
+    attack_message = '\n'   # This is used to let the player know they've received a critical hit. By default, it's a new line.
     if enemy_type == 'guard':
         enemy_friendly_name = "The Guard"
     elif enemy_type == 'high_rank_guard':
@@ -2240,14 +2218,18 @@ def fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):
         choice = int(input("\nWhat will you do?\n1] Attack\n2] Use Item\n3] Examine\n4] Run\n--> "))
     except ValueError:
         print("\nPlease choose a valid option.")
-        fight_enemy(enemy_type, enemy_object, battle_logic)
+        fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout)
     if choice == 1:
-        if enemy_only_critical is True or disable_critical is True:  # Critical hit logic; generate a random number.
-            if battle_logic.player_critical_hit():
-                returned_value = player.land_critical_hit(int(enemy_object.get_health()))
-                attack_message = "You land a critical hit! You strike "+str(enemy_friendly_name)+", dealing "
+        if hyper_use_count == 0:    # hyper_use_count is zero if the Hyper Potion hasn't been used.
+            if enemy_only_critical is True or disable_critical is True:     # Only run through the critical hit logic if the player has not disabled this behaviour.
+                if battle_logic.player_critical_hit():  # If this method returns True, then the player successfully initiated a critical hit.
+                    returned_value = player.land_critical_hit(int(enemy_object.get_health()))
+                    attack_message = "You land a critical hit! You strike "+str(enemy_friendly_name)+", dealing "
+            else:
+                returned_value = player.attack_guard(int(enemy_object.get_health()))
+                attack_message = "You attack "+str(enemy_friendly_name)+", dealing "
         else:
-            returned_value = player.attack_guard(int(enemy_object.get_health()))
+            returned_value = 25
             attack_message = "You attack "+str(enemy_friendly_name)+", dealing "
         print("\n"+str(attack_message)+str(returned_value)+" damage!")
         enemy_object.sustain_damage(int(returned_value))
@@ -4163,7 +4145,7 @@ def debugWarp():
     global damage, debug, hyperPotion, hyperpotionQuantity, area, playerHealth, healingPotion, healingpotionQuantity, playerName, playerMaxHealth, player
     funcWarp = input("\n== WARP ==\nType the location you wish to warp to, or type 'end' to quit: ")
     player = Player(10, 200, 200, "test", inventory={'Healing Potion': 999, 'Hyper Potion': 1, 'Smokescreen': 3},
-                   defensive_items=['dummy'], has_beaten_game=False, has_completed_expert_mode=False, save_location=3)    # Create a dummy player so the game doesn't crash
+                    defensive_items=['dummy', 'dummy2'], has_beaten_game=False, has_completed_expert_mode=False, save_location=3)    # Create a dummy player so the game doesn't crash
     if debug == 0:
         choice = input("Enable debug mode? (y/n): ")
         if choice == "y":
@@ -4183,6 +4165,7 @@ def debugWarp():
     elif funcWarp == 'battle':
         choice = input("Type the class of enemy to test (case sensitive) ")
         area = int(input("Type the value to assign to the area variable: "))
+        print(player.get_defensive_items())
         encounter_enemy(choice)
     elif funcWarp == "chapter":
         warp_to_chapter(save_location=int(input("Enter a value for save_location: ")))
@@ -4933,25 +4916,32 @@ def advanced_about():   # Advanced game info - this is mostly used for debugging
     advanced_settings()
 
 
+def show_release_notes():
+    print("This is placeholder text.")
+    advanced_settings()
+
+
 def advanced_settings():
     print(generate_header("ADVANCED"))
-    print("1] Refresh\n2] Reset settings to default\n3] View detailed game info\n4] Delete a save file")
+    print("1] What's New?\n2] Refresh\n3] Reset settings to default\n4] View detailed game info\n5] Delete a save file")
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
     try:
-        choice = int(input("5] Cancel\n--> "))
+        choice = int(input("6] Cancel\n--> "))
     except ValueError:
         advanced_settings()
-    if choice == 2:
+    if choice == 3:
         apply_default_settings()
-    elif choice == 1:
+    elif choice == 2:
         refresh()
-    elif choice == 3:
-        advanced_about()
     elif choice == 4:
-        erase_save_data()
+        advanced_about()
     elif choice == 5:
+        erase_save_data()
+    elif choice == 6:
         settings()
+    elif choice == 1:
+        show_release_notes()
     else:
         print("\nPlease select a valid option.")
         advanced_settings()
