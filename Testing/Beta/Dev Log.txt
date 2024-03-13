@@ -63,10 +63,11 @@ Key- [x] = A patch for this bug has been implemented.
 
 - 'Never ask for overwrite confirmation' option currently doesn't work. []
 - Some formatting bugs during battles. []
-- 'Erase save data' option returns to the main Options screen, instead of the Advanced screen as expected. []
+- 'Erase save data' option returns to the main Options screen, instead of the Advanced screen as expected. [x]
 - When Basic Graphics is enabled, the game still thinks the Flow theme is active if you enter the Themes menu. []
-- Some crashes assosiated with playing under a previously converted save file. []
-- Menu titles aren't rendered in the 'Advanced' settings menu when Basic Graphics or Classic Theme is enabled. []
+- Some crashes assosiated with playing under a previously converted save file. [x]
+- Some menu titles aren't rendered when Basic Graphics or Classic Theme is enabled. [x]
+- Converted save data returns 'None' for defensive_items, leading to crashes. []
 
 
 LINES OF CODE PER VERSION:
