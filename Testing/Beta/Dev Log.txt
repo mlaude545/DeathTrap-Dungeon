@@ -66,6 +66,7 @@ Key- [x] = A patch for this bug has been implemented.
 - 'Erase save data' option returns to the main Options screen, instead of the Advanced screen as expected. []
 - When Basic Graphics is enabled, the game still thinks the Flow theme is active if you enter the Themes menu. []
 - Some crashes assosiated with playing under a previously converted save file. []
+- Menu titles aren't rendered in the 'Advanced' settings menu when Basic Graphics or Classic Theme is enabled. []
 
 
 LINES OF CODE PER VERSION:
