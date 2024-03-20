@@ -54,6 +54,7 @@ attribute of the Player class.
 - Re-write the update system from scratch, which brings many benefits:
 	> The Windows version of the game updates through a standalone program, which downloads the latest version's .exe file directly from GitHub, and overwrites the older version with this data. This has many benefits such as way faster downloads as well as being a true in-place upgrade (wasn't how it worked before.)
 	> The Source Code version now lets you save to a custom directory rather than forcing you to use ~/Downloads.
+- Re-worked the 'Refresh' option to avoid issues which may have led to mass file deletion and data loss in the Source Code version.
 
 
 KNOWN BUGS:
@@ -68,6 +69,7 @@ Key- [x] = A patch for this bug has been implemented.
 - Some crashes assosiated with playing under a previously converted save file. [x]
 - Some menu titles aren't rendered when Basic Graphics or Classic Theme is enabled. [x]
 - Converted save data returns 'None' for defensive_items, leading to crashes. []
+- Trying to exit the inventory during the Juniper boss fight causes the Smokescreen to be used, and the player is warped back to Chapter 2. [x]
 
 
 LINES OF CODE PER VERSION:
