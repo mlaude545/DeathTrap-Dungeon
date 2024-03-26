@@ -70,6 +70,7 @@ Key- [x] = A patch for this bug has been implemented.
 - Some menu titles aren't rendered when Basic Graphics or Classic Theme is enabled. [x]
 - Converted save data returns 'None' for defensive_items, leading to crashes. []
 - Trying to exit the inventory during the Juniper boss fight causes the Smokescreen to be used, and the player is warped back to Chapter 2. [x]
+- Entering an invalid integer on the 'New version available' screen causes the game to quit abrubtly. []
 
 
 LINES OF CODE PER VERSION:
