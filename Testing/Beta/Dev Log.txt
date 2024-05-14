@@ -8,13 +8,6 @@ for this particular release; it's now mostly just bugfixes and general cleanup.
 TO DO:
 Below you'll find a list of things that are currently in the works. The comments in [square brackets] are the current state of the implementation.
 
-High Priority:
-- Finish battle logic functions:
-	> handle_smokescreen
-	> player_critical_hit
-	> 
-
-Other:
 - Clean up legacy variables, rename them to better follow Python best practice.	[IN PROGRESS]
 - Add comments to the source code to make it easier to maintain. [IN PROGRESS]
 - Integrate items into some sort of class system (objects with attributes rather than a bunch of random 
@@ -23,7 +16,8 @@ variables floating around in the code.)	[MOSTLY COMPLETE, NEEDS REFINEMENT]
 - Add descriptions for tracks in the Audio Player. [IN PROGRESS]
 - General bugfixes. [IN PROGRESS - REQUIRES PLAY TESTING]
 - Add a "What's New?" option to the Advanced Settings menu, which acts as the changelog. [NOT STARTED]
-- Migrate in-game chests to the new search_chest function, and remove legacy code. [IN PROGRESS]
+- Migrate in-game chests to the new search_chest function, and remove legacy code. [MOSTLY DONE]
+- Migrate the old self-hosted bug tracking system to Bugzilla. [IN TESTING]
 
 COMPLETED FEATURES / PATCHES:
 Please note that this list isn't comprehensive; it's just additions effective from the writing of this list (2/2/24) - a full list of implementations can be found in the changelog.
@@ -69,3 +63,4 @@ Key- [x] = A patch for this bug has been implemented.
 - Converted save data returns 'None' for defensive_items, leading to crashes. []
 - Trying to exit the inventory during the Juniper boss fight causes the Smokescreen to be used, and the player is warped back to Chapter 2. [x]
 - Entering an invalid integer on the 'New version available' screen causes the game to quit abrubtly. []
+- Player held items are formatted strangely when using the 'Examine' option duirng battles. [x]
