@@ -15,9 +15,13 @@ variables floating around in the code.)	[MOSTLY COMPLETE, NEEDS REFINEMENT]
 	> Very nearly complete, still have to integrate it fully.
 - Add descriptions for tracks in the Audio Player. [IN PROGRESS]
 - General bugfixes. [IN PROGRESS - REQUIRES PLAY TESTING]
-- Add a "What's New?" option to the Advanced Settings menu, which acts as the changelog. [NOT STARTED]
+- Add a "What's New?" option to the Advanced Settings menu, which acts as the changelog. [REMOVED - EXTRA MAINTENANCE]
 - Migrate in-game chests to the new search_chest function, and remove legacy code. [MOSTLY DONE]
-- Migrate the old self-hosted bug tracking system to Bugzilla. [IN TESTING]
+- Migrate the old self-hosted bug tracking system to Bugzilla. [CANCELLED - USE GITHUB ISSUE TRACKING INSTEAD]
+- Re-implement release notes option when a new version is available [NOT STARTED]
+
+PROPOSED FEATURES THAT WERE REMOVED:
+This is a list of features that were planned to be in the final release of DTD v3.0.0, but have been removed.
 
 COMPLETED FEATURES / PATCHES:
 Please note that this list isn't comprehensive; it's just additions effective from the writing of this list (2/2/24) - a full list of implementations can be found in the changelog.
