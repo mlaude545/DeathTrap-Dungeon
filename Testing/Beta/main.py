@@ -11,9 +11,10 @@
 # this game, or want to report a bug, please use the 'Report a Bug' option in-game in the Settings menu.
 
 # Import the needed libraries
-import random, pickle, os, webbrowser, platform, threading, itertools, sys, time, socket
+import random, pickle, os, webbrowser, platform, sys, time, socket
 from urllib.request import urlretrieve
 from pathlib import Path
+from datetime import datetime
 
 # Initialise global variables
 current_version = b"3.0.0"  # Version of this release of DTD, used when checking for updates.
@@ -21,6 +22,8 @@ internal_identifier = "DTD v3.0.0 BETA"   # A more friendly version identifier, 
 checked_for_update = False  # This changes to True after the game has checked for updates, provided auto updates are enabled.
 is_beta = True   # Set this to True if this is a beta copy of DTD, else it should be False
 
+# More various global variables. Please note that many of these have been depreciated or made redundant, so the aim is to
+# phase many of these out in future releases.
 savePointCopy = 0
 gotstring = 0
 debug = 0
@@ -32,33 +35,20 @@ mute_audio = False
 gotKey = False
 foundDoor = False
 sound_module_error = False
-noPyGame = False
-saveWarning = False
-musicLoop = False
-musicStop = False
-playBattleTheme = False
 died = False
-noPyGameModule = False
 smokescreen = False
-usedSmoke = False
 healingPotion = False
 searchedChest2 = False
-usedHealing = False
 highRank = False
 discoveredPadlock = False
-errorImporting = False
-audioMuted = False
 defeatedGuardOutsideConfinement = False
 originalGuardHealth = 0
 usedHyperPotion = 0
 originalDamage = 0
 originalHealth = 0
-skipUpdateCheck = False
+auto_updates_disabled = False
 firstSaveRequest = True
-originalSavePoint = 0
-convertSlotOne = False
-convertSlotTwo = False
-convertSlotThree = False
+save_location_cache = 0
 searchedChest5 = False
 searchedChest = False
 courtyardGuardKilled = False
@@ -90,7 +80,7 @@ checkForUpdatesThroughOptions = False
 loadMenu = False
 basic_graphics_enabled = False
 dependenciesChecked = False
-automaticallyEnabledBasicGraphics = False
+auto_applied_basic_graphics = False
 classic_theme_enabled = False
 skipOverwriteConfirmation = False
 disableOverwrite = False
@@ -100,7 +90,7 @@ enemy_only_critical = False
 juniperCanHeal = False
 juniperPhase = 0
 diedToJuniper = False
-expertModeEnabled = False
+expert_mode_enabled = False
 selectedSlot = 0
 originalHealingPotion = False
 originalHealingPotionQuantity = 0
@@ -141,13 +131,13 @@ if classic_theme_enabled is True or classic_theme_enabled is [True]:
 
 if basic_graphics_enabled is True or basic_graphics_enabled is [True]:
     print("\n== Basic Graphics mode is enabled; the game will render graphics in a less detailed way. ==")
-    classic_theme_enabled = True
+    classic_theme_enabled = True    # Enable classic theme as a fallback to ensure menus cannot be loaded with the Flow style.
 
-try:    # Checks if the host supports unicode graphics.
+try:    # Check if the host supports unicode graphics.
     sys.stdout.write("█")
 except Exception:   # If unicode characters can't be displayed, show a warning and enable Basic Graphics mode.
     basic_graphics_enabled = True
-    automaticallyEnabledBasicGraphics = True
+    auto_applied_basic_graphics = True
     print("\n== INFORMATION ==\nYour system does not appear to support unicode characters, so Basic Graphics mode has\nbeen enabled. This means that menus and in-game graphics will be rendered in a \nless detailed way. For more info, go to Settings > Graphics > Basic Graphics Mode.")
 sys.stdout.write("\b")
 sys.stdout.flush()
@@ -163,16 +153,29 @@ if classic_theme_enabled == [False]:
     classic_theme_enabled = False
 
 
-def generate_header(title):  # This function is used throughout the game to render headings for menus.
+def generate_unformatted_title(title, mode):    # This function generates a header title bar used in the Flow and Basic graphics styles.
+    if mode == 'flow':
+        return '\n█ ' + str(title) + ': ░▒▒███████████████████████████████████████'  # Create a header more than 34 characters long.
+    elif mode == 'basic':
+        return '\n= ' + str(title) + ': =========================================='  # Same, but for Basic Graphics mode.
+
+
+def generate_header(title):  # This function is used throughout the game to render headings for menus in the correct style.
     global basic_graphics_enabled, classic_theme_enabled
     if not basic_graphics_enabled and not classic_theme_enabled:
-        unformatted_title = '\n█ '+str(title)+': ░▒▒██████████████████████'  # Generate a header with over 34 characters
-        unformatted_length = len(unformatted_title)     # Get the length of the header
+        mode = 'flow'
+    elif basic_graphics_enabled and classic_theme_enabled:
+        mode = 'basic'
+    else:
+        mode = 'classic'
+    if mode == 'flow' or mode == 'basic':
+        unformatted_title = generate_unformatted_title(title, mode)
+        unformatted_length = len(unformatted_title)     # Get the length of the returned header
         difference = unformatted_length - 35    # Menus in the Flow style are 34 characters wide, so work out the difference between the length of the generated header and where we want it to be.
         header = unformatted_title[:-difference]    # Removes the excess end characters
     else:
-        header = '\n== '+str(title)+' =='   # Generate headers for the Classic Theme and Basic Graphics Mode styles.
-    return header   # Return the header.
+        header = '\n== '+str(title)+' =='   # Generate headers that mimic older releases of DTD for the Classic Theme style.
+    return header   # Return the generated header.
 
 
 # Try to import the Pygame library; this handles audio.
@@ -182,15 +185,17 @@ try:
 except Exception:   # If Pygame can't be imported, show a warning and mute audio to avoid crashes.
     no_pygame = True    # Raise the no_pygame flag, so the game knows not to let the player unmute audio.
     mute_audio = True
-    print(generate_header("UNABLE TO IMPORT MODULE"))
-    print("The Pygame library could not be imported. This library handles all of the game's audio, so audio will be muted in order to keep the game running. For\nhelp fixing this error, please visit: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
+    print(generate_header("MISSING DEPENDENCY"))
+    print("The module 'Pygame' could not be imported. This library handles all of the game's audio, so audio will be "
+          "muted in order to keep the game running. For\nhelp fixing this error, please visit: "
+          "https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
 
 # Try to import the necessary libraries for checking for updates.
 try:
     import ssl
     import urllib.request
 except Exception:
-    skipUpdateCheck = True
+    auto_updates_disabled = True
 
 try:    # Open the file containing gameplay settings, and apply them.
     with open('gameplay_settings.dat', 'rb') as f:
@@ -349,7 +354,7 @@ class Player:
         return self.attack
 
     def get_stats(self):
-        return str(self.name)+"\nDEFENCE: "+str(self.health)+"/"+str(self.max_health)+"\nATTACK: "+str(self.attack)
+        return self.name, self.health, self.max_health, self.attack
 
     def attack_guard(self, guard_health):
         guard_health -= self.attack
@@ -470,11 +475,11 @@ class Player:
 
 try:
     with open('updateprefs.dat', 'rb') as f:
-        skipUpdateCheck = pickle.load(f)
+        auto_updates_disabled = pickle.load(f)
 except Exception:
-    skipUpdateCheck = False
+    auto_updates_disabled = False
     with open('updateprefs.dat', 'wb') as f:
-        pickle.dump([skipUpdateCheck], f, protocol=2)
+        pickle.dump([auto_updates_disabled], f, protocol=2)
 
 
 class BattleLogic:  # This class contains the various logic functions used within battles.
@@ -496,22 +501,21 @@ class BattleLogic:  # This class contains the various logic functions used withi
         pygame.mixer.music.stop()
         return
 
-    def handle_smokescreen(self, area):
-        # Code to handle the use of the smokescreen goes here.
-        return
-
-    def guard_critical_hit(self, expert_mode_enabled):  # This method is called to determine whether a guard lands a
-        if expert_mode_enabled:                         # critical hit; it works by randomly generating a number. If
-            crit = random.randint(0, 7)           # the player has enabled Expert Mode, the odds are higher.
-        else:
-            crit = random.randint(0, 25)
+    def critical_hit(self, expert_mode_enabled, type):
+        max_boundary = 10
+        if type == 'enemy' and expert_mode_enabled:
+            max_boundary = 7
+        elif type == 'enemy' and not expert_mode_enabled:
+            max_boundary = 25
+        elif type == 'player' and expert_mode_enabled:
+            max_boundary = 15
+        elif type == 'player' and not expert_mode_enabled:
+            max_boundary = 10
+        crit = random.randint(0, int(max_boundary))
         if crit == 7:
             return True
         else:
             return False
-
-    def player_critical_hit(self, expert_mode_enabled):  # Same premise as the method above, only this one affects
-        pass                                             # the player.
 
     def has_hyper_potion_worn_off(self, hyper_potion_use_count):  # This method is used when the Hyper Potion is active
         hyper_potion_use_count -= 1                               # during battle. It returns True if the potion has
@@ -788,23 +792,46 @@ class Items:
         return self.defense_value
 
 
-def generate_error_message(description, e):  # This function displays error messages, taking basic and advanced error info as parameters to display to the user.
+def invalid_selection_message():
+    print("\nPlease select a valid option.")
+
+
+def get_diagnostics():  # This function gathers diagnostic data. This data is shown to the user, and can be included in bug reports.
+    global current_version, basic_graphics_enabled, classic_theme_enabled, auto_updates_disabled, internal_identifier, sound_module_error, sound_directory_error
+    latest = current_version.decode('utf-8')
+    if classic_theme_enabled:
+        active_theme = 'Classic Theme'
+    else:
+        active_theme = 'Flow'
+    if not sound_module_error:
+        pygame_ver = pygame.version.ver
+    else:
+        pygame_ver = "(Pygame version data not available - probably not installed.)"
+    current_platform = sys.platform
+    general_data = [internal_identifier, latest]
+    diagnostic_data = [current_platform, pygame_ver, basic_graphics_enabled, active_theme, auto_updates_disabled]
+    return f"GENERAL:\nDTD Version: {general_data[0]}\nFriendlyName: {general_data[1]}\n\nDIAGNOSTIC:\nPlatform: {diagnostic_data[0]}\nPygame Version: {diagnostic_data[1]}\nBasic Graphics Status: {diagnostic_data[2]}\nActive Theme: {diagnostic_data[3]}\nAuto Updates Disabled? {diagnostic_data[4]}"
+
+
+def handle_error(description, e):  # This function displays error messages, taking basic and advanced error info as parameters to display to the user.
     print(generate_header("CRASH HANDLER"))
     print("Sorry for the inconvenience, but an unexpected error has occurred.\n\nGENERAL DETAILS: "+str(description)+"\nADVANCED ERROR INFO: "+str(e))
     print("\nFor help fixing this, choose 'Get Help Online' from the menu below and use the error details above to find help. Alternatively, \nyou can submit a bug report to help the developers get this issue fixed.")
     try:
-        choice = int(input("1] Get Help Online\n2] Submit Bug Report\n3] Cancel\n--> "))
+        choice = int(input("1] Get Help Online\n2] Send Error Report\n3] Cancel\n--> "))
+        if choice == 1:
+            webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/help/')
+        elif choice == 2:
+            print(f"\nPlease include the following information in the bug report:\n{get_diagnostics()}\n")
+            time.sleep(1.6)
+            webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/')
+        elif choice == 3:
+            pass
+        else:
+            print("That's an invalid choice, try again.")
+            handle_error(description, e)
     except ValueError:
-        generate_error_message(description, e)
-    if choice == 1:
-        webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/help/')
-    elif choice == 2:
-        webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/')
-    elif choice == 3:
-        pass
-    else:
-        print("That's an invalid choice, try again.")
-        generate_error_message(description, e)
+        handle_error(description, e)
 
 
 def generate_defensive_item_list(player_max_health, damage):
@@ -850,7 +877,7 @@ def download_latest_source(download_path, url):
         download = urlretrieve(url, download_path)
     except Exception as e:
         description = 'General download error; try checking your internet connection.'
-        generate_error_message(description, e)
+        handle_error(description, e)
         menu()
     print("\nThe latest version of DeathTrap Dungeon was downloaded and saved to: " + str(download_path))
     menu()
@@ -858,7 +885,7 @@ def download_latest_source(download_path, url):
 
 def choose_custom_directory(download_path, url):
     custom_path = input("\nType the path of the directory you'd like to use instead, or type 'cancel' to go back: ")
-    if custom_path == 'cancel':
+    if custom_path == 'cancel' or custom_path == 'Cancel':
         confirm_source_code(download_path, url)
     else:
         if not os.path.isdir(custom_path):
@@ -910,51 +937,50 @@ def ask_download_update(method_of_access, contents):
         menu()
     elif choice == 3 and method_of_access == 'auto':
         print("\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by selecting 'Settings' on the main menu, then selecting 'Software Updates'.")
-        skipUpdateCheck = True
+        auto_updates_disabled = True
         with open('updateprefs.dat', 'wb') as f:
-            pickle.dump([skipUpdateCheck], f, protocol=2)
+            pickle.dump([auto_updates_disabled], f, protocol=2)
         menu()
 
 
 def check_for_updates(method_of_access):
-    global current_version
+    global current_version  # This variable is the number of this version of DTD.
     ssl._create_default_https_context = ssl._create_unverified_context
-    url = "http://www.dtdlatestversion.xp3.biz"
+    url = "http://www.dtdlatestversion.xp3.biz"     # This site hosts the latest DTD version number.
     hdr = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'}
     req = urllib.request.Request(url, headers=hdr)
     response = urllib.request.urlopen(req)
-    contents = response.read()
-    contents = contents.split(b'<p>')[1].lstrip().split(b'</p>')[0]
-    if contents > current_version:
+    contents = response.read()  # Store the HTML contents of the site to a variable.
+    contents = contents.split(b'<p>')[1].lstrip().split(b'</p>')[0]     # Strip away the unneeded HTML, leaving just the version number.
+    if contents > current_version:  # If the retrieved version number is higher than the current version number, then an update is available.
         ask_download_update(method_of_access, contents)
     else:
         if method_of_access == 'manual':
             print("\nYou're up to date! There are no new versions of DeathTrap Dungeon available at this time.")
 
 
-def check_network_connection(method_of_access):  # Checks for an internet connection. If none exists, the update check is skipped.
-    global skipUpdateCheck
+def check_network_connection():  # Checks for an internet connection. If none exists, the update check is skipped.
+    global auto_updates_disabled
     try:
         socket.setdefaulttimeout(5)
         host = socket.gethostbyname("www.google.com")
         s = socket.create_connection((host, 80), 2)
         s.close()
-        check_for_updates(method_of_access)
+        return True
+        #check_for_updates(method_of_access)
     except Exception:
-        if method_of_access == 'manual':
-            print("\nYou are not connected to the internet, connect to a network and try again.")
+        return False
+        #if method_of_access == 'manual':
+        #    print("\nYou are not connected to the internet, connect to a network and try again.")
 
 
-if skipUpdateCheck == [False]:
-    skipUpdateCheck = False
+if auto_updates_disabled == [False]:
+    auto_updates_disabled = False
 
 if not os.path.isdir('sfx') and not no_pygame:      # This runs on startup and check to see if the 'sfx' folder that
-    sound_directory_error = True                               # contains audio data is present. If it is not, a message is
-    mute_audio = True                                # displayed to the user, and audio is muted in-game.
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("\n█ UNABLE TO ACCESS AUDIO DATA: ░▒▒█")
-    else:
-        print("\n== UNABLE TO ACCESS AUDIO DATA ==")
+    sound_directory_error = True                    # contains audio data is present. If it is not, a message is
+    mute_audio = True                               # displayed to the user, and audio is muted in-game.
+    print(generate_header("UNABLE TO ACCESS AUDIO DATA"))
     print("The directory containing the game's audio files could not be located. In order to keep the game running, audio has been muted.\n\nIf you are running the Source Code version, ensure the game files have been extracted correctly, and ensure that\nthe 'sfx' directory is in the same root directory as the game.\n\nFor more help on fixing this error, visit the help page at: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
 
 if sound_directory_error is False and no_pygame is False:
@@ -980,7 +1006,7 @@ def save_data_conversion_utility(save_file):    # The Save Data Conversion Utili
                 f)
     except FileNotFoundError as e:
         description = "Save data is inaccessible."
-        generate_error_message(description, e)
+        handle_error(description, e)
         load()
     except ValueError:
         try:
@@ -989,11 +1015,11 @@ def save_data_conversion_utility(save_file):    # The Save Data Conversion Utili
                     f)
         except FileNotFoundError as e:
             description = "Save data is inaccessible."
-            generate_error_message(description, e)
+            handle_error(description, e)
             load()
         except ValueError as e:
             description = "The save file is not supported in this version of Save Data Conversion Utility."
-            generate_error_message(description, e)
+            handle_error(description, e)
             load()
     inventory = {'Healing Potion': int(healingpotionQuantity), 'Hyper Potion': int(hyperpotionQuantity), 'Smokescreen': int(smokescreenQuantity)}   # Populate the inventory as a list using loaded values.
     defensive_items = generate_defensive_item_list(int(max_health), int(damage))    # Generate an array of defensive items to save
@@ -1004,9 +1030,9 @@ def save_data_conversion_utility(save_file):    # The Save Data Conversion Utili
     load()
 
 
-def warp_to_chapter(save_location):
-    if save_location == 1:
-        choice4()
+def warp_to_chapter(save_location):     # This function uses the save_location variable to jump to the correct point
+    if save_location == 1:              # in the game - this saves me having to repeat this code every time I need this
+        choice4()                       # functionality.
     elif save_location == 2:
         escape()
     elif save_location == 3:
@@ -1022,23 +1048,13 @@ def warp_to_chapter(save_location):
 
 
 def chapterReplay():
-    global playerHealth, playerMaxHealth, damage, player
-    if not basic_graphics_enabled:
-        try:
-            print("\n█ CHAPTER REPLAY: ░▒▒█████████████")
-        except Exception:
-            print("\n== CHAPTER REPLAY ==")
-    if basic_graphics_enabled is True:
-        print("\n== CHAPTER REPLAY ==")
-    print(
-        "Select a chapter to play:\n1] Enter the Dungeon\n2] Solitary Confinement\n3] The Great Escape\n4] What Doesn't Kill You Makes You Stronger\n5] A Breath of Fresh Air\n6] A Puzzle in Darkness\n7] With Great Power\n8] Finale")
+    global player, basic_graphics_enabled, classic_theme_enabled
+    print(generate_header("CHAPTER REPLAY"))
+    print("Select a chapter to play:\n1] Enter the Dungeon\n2] Solitary Confinement\n3] The Great Escape\n4] What Doesn't Kill You Makes You Stronger\n5] A Breath of Fresh Air\n6] A Puzzle in Darkness\n7] With Great Power\n8] Finale")
     if not basic_graphics_enabled and not classic_theme_enabled:
-        try:
-            print("██████████████████████████████████\n9] Cancel")
-        except Exception:
-            print("===============================\n9] Cancel")
-    if basic_graphics_enabled is True or classic_theme_enabled is True:
-        print("===============================\n9] Cancel")
+        print("██████████████████████████████████\n9] Cancel")
+    else:
+        print("==================================\n9] Cancel")
     try:
         choice = int(input("--> "))
     except ValueError:
@@ -1068,28 +1084,29 @@ def chapterReplay():
         player.set_save_location(7)
         chapterEight()
     else:
-        gameBeatWarp()
+        game_beat_extras()
+
 
 def expertMode():
-    global expertModeEnabled, originalDamage, originalHealth, damage, playerHealth, playerMaxHealth, smokescreen, smokescreenQuantity, originalSmokescreen, originalSmokescreenQuantity
+    global expert_mode_enabled, originalDamage, originalHealth, damage, playerHealth, playerMaxHealth, smokescreen, smokescreenQuantity, originalSmokescreen, originalSmokescreenQuantity
     global hyperPotion, hyperpotionQuantity, originalHyperPotionQuantity, originalHyperPotion
-    global healingPotion, healingpotionQuantity, originalHealingPotion, originalHealingPotionQuantity, savePoint, originalSavePoint, player_expert_cache, player
+    global healingPotion, healingpotionQuantity, originalHealingPotion, originalHealingPotionQuantity, savePoint, save_location_cache, player_expert_cache, player
     try:
         choice = int(input("\nAre you ready to begin? To learn more about Expert Mode, select 'More Info'.\n1] Yes\n2] No\n3] More Info\n--> "))
     except ValueError:
         expertMode()
     if choice == 1:
-        inventory = {'Healing Potion': 0, 'Hyper Potion': 0, 'Smokescreen': 0}  # Creates an inventory with default values.
-        defensive_items = ['[None]']
-        expertModeEnabled = True    # Sets the ExpertModeEnabled flag; this tells the game when expert mode is enabled, and appropriately disables features such as checkpoints.
-        savePoint = originalSavePoint   # The variable originalSavePoint holds the value of the save location before starting Expert Mode, so it can be restored later. This is a little hacky, I keep meaning to redo this.
+        inventory = {'Healing Potion': 0, 'Hyper Potion': 0, 'Smokescreen': 0}  # Create an inventory with default values.
+        defensive_items = ['[No Defensive Items]']
+        expert_mode_enabled = True    # Sets the ExpertModeEnabled flag; this tells the game when expert mode is enabled, and appropriately disables features such as checkpoints.
+        savePoint = save_location_cache   # The variable save_location_cache holds the value of the save location before starting Expert Mode, so it can be restored later. This is a little hacky, I keep meaning to redo this.
         player_expert_cache = player  # player_expert_cache creates a new Player object, and initialises it with the save file's original attributes, so they can  be restored.
         player = Player(5, 20, 20, str(player_expert_cache.get_name()), inventory, defensive_items, False, False, 0)  # Create a new player object to overwrite the cached original, with basic stats.
         print("Good luck!")  # Displays some motivation.
         time.sleep(0.6)
         area1()
     elif choice == 2:
-        gameBeatWarp()
+        game_beat_extras()
     elif choice == 3:
         print("""
 When Expert Mode is enabled, certain sections in the game become more challenging...
@@ -1104,25 +1121,26 @@ When Expert Mode is enabled, certain sections in the game become more challengin
     else:
         expertMode()
 
-def gameBeatWarp():
+
+def game_beat_extras():
     global savePoint, gameBeat, no_pygame, sound_directory_error, player
     print(generate_header('EXTRAS'))
     try:
         choice = int(input(
             "Congratulations on beating the game! Please choose an extra from the list below:\n1] Music Player\n2] Chapter Replay\n3] Expert Mode\n4] Cancel\n--> "))
     except ValueError:
-        gameBeatWarp()
+        game_beat_extras()
     if choice == 1 and no_pygame is False and sound_directory_error is False:
         print(generate_header('MUSIC PLAYER'))
         print("Listen to DeathTrap Dungeon's soundtrack! All the songs that play in-game can be heard here, as well as some never-before-heard beta tracks!\n")
         audioPlayer()
     elif choice == 1 and no_pygame is True:
         print("\nMusic Player can't be accessed because the required module 'Pygame' is not installed. Please refer to the readme file, or get help\nonline at: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
-        gameBeatWarp()
+        game_beat_extras()
     elif choice == 1 and sound_directory_error is True:
         print(
             "\nMusic Player can't be accessed because audio data could not be loaded. See the error message displayed upon starting the game for more details.")
-        gameBeatWarp()
+        game_beat_extras()
     elif choice == 2:
         gameBeat = True
         chapterReplay()
@@ -1133,7 +1151,7 @@ def gameBeatWarp():
     elif choice == 4:
         menu()
     else:
-        gameBeatWarp()
+        game_beat_extras()
 
 
 def save_file_incompatible(filename):   # Allow the player to convert save data.
@@ -1156,7 +1174,7 @@ def show_save_preview(player):                  # This function generates a clea
     if not basic_graphics_enabled and not classic_theme_enabled:  # a neat format for the player to read. The preview is shown
         print("\n█ SAVE FILE INFO: ░▒▒█████████████")  # before loading or erasing a save file.
     else:
-        print("===============================")
+        print("==================================")
     print("PLAYER STATS:")
     print("Name: %s" % player.get_name())
     print("Attack Damage: %d" % player.get_attack())
@@ -1206,7 +1224,7 @@ def show_save_preview(player):                  # This function generates a clea
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
     else:
-        print("===============================")
+        print("==================================")
 
 
 def ask_load_save(filename):
@@ -1240,7 +1258,7 @@ def ask_load_save(filename):
                     elif save_location == 7 and game_beaten is False:
                         chapterEight()
                     elif game_beaten is True:
-                        gameBeatWarp()
+                        game_beat_extras()
                 elif choice == 2:
                     load()
                 else:
@@ -1274,11 +1292,11 @@ def load():
     for slot_info in slots:
         display_save_slot_info(slot_info)
     if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████\n4] Cancel")
-    else:
-        print("4] Cancel")
+        print("██████████████████████████████████")
+    elif basic_graphics_enabled and classic_theme_enabled:
+        print("==================================")
     try:
-        choice = int(input("--> "))
+        choice = int(input("4] Cancel\n--> "))
     except ValueError:
         print("\nBad input. Only integers can be entered here!")
         load()
@@ -1302,7 +1320,6 @@ def save_success():
         save_success()
     save_location = int(player.get_save_location())
     game_beaten = player.is_game_beaten()
-    #savePoint = originalSavePoint
     if continue2 == 1:
         print(" ")
         if save_location == 1:
@@ -1355,7 +1372,7 @@ def display_slot_info(slot_number, player_name, game_beat):
 
 
 def save_to_slot(slot_filename, post_game_save):
-    global originalSavePoint, savePoint, gameBeat, creditsRolled, player, mute_audio
+    global save_location_cache, savePoint, gameBeat, creditsRolled, player, mute_audio
     print("Now saving...")
     player_name = str(player.get_name())
     save_location = player.get_save_location()
@@ -1449,8 +1466,8 @@ def save_game():
 def askSave():
     global mute_audio, firstSaveRequest, player
     global area
-    global creditsRolled, gameBeat, expertModeEnabled
-    if expertModeEnabled and creditsRolled: # If expert mode is enabled and the credits have rolled, then expert
+    global creditsRolled, gameBeat, expert_mode_enabled
+    if expert_mode_enabled and creditsRolled: # If expert mode is enabled and the credits have rolled, then expert
         player.completed_expert_mode()      # mode is complete!
         restore_cached_stats()
     save_location = player.get_save_location()
@@ -1597,18 +1614,18 @@ def nameChangeAsk():
         nameChangeAsk()
 
 
-def nameInputAsk():
+def player_name_input():
     global basic_graphics_enabled, player
     inventory = {'Healing Potion': 0, 'Hyper Potion': 0,
                  'Smokescreen': 0}  # Creates an inventory with default values, passed to the Player class.
-    defensive_items = ['[No defensive items]']
+    defensive_items = ['* No Defensive Items *']
     player = Player(5, 20, 20, "None set", inventory, defensive_items, False, False, 0)
     print(generate_header("WELCOME"))
     print("Welcome to DeathTrap Dungeon! What's your name? ")
     playerName = input("--> ")
     if playerName == "" or playerName == " ":
         print("Please enter a valid name.\n")
-        nameInputAsk()
+        player_name_input()
     else:
         print("Oh nice, that's a cool name %s!" % str(player.set_name(playerName)))
         nameChangeAsk()
@@ -1638,7 +1655,7 @@ def inventory(enemy_type, enemy_object, battle_logic, audio_lockout):
     else:
         print("===============================\n4] Close Inventory")
     try:
-        use_item = int(input("\n--> "))
+        use_item = int(input("--> "))
     except ValueError:
         print("\nPlease select a valid option.")
         inventory(enemy_type, enemy_object, battle_logic, audio_lockout)
@@ -1658,17 +1675,17 @@ def inventory(enemy_type, enemy_object, battle_logic, audio_lockout):
         player.use_hyper_potion(int(player.get_max_health()), int(player.get_attack()))
         print("\nYou have used the Hyper Potion; attack and defence levels have been temporarily boosted to 25.")
         fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout)
-    elif use_item == 3 and smokescreen_quantity != 0 and enemy_type != 'juniper' or enemy_type != 'juniper_phase_two' or enemy_type != 'juniper_phase_three':
-        print("\nYou have used the Smokescreen! The battlefield is engulfed in a thick cloud of smoke.")
-        time.sleep(1)
-        print("\nYou use this to your advantage, and slip away unharmed!")
-        time.sleep(1)
-        battle_logic.stop_music()   # Halt playback of the battle music.
-        player.use_smokescreen(area)
-    elif use_item == 3 and smokescreen_quantity != 0 and enemy_type == 'juniper' or enemy_type == 'juniper_phase_two' or enemy_type == 'juniper_phase_three':
-        print("\nYou can't use that item here!")
-        time.sleep(1)
-        enemy_attack_player(enemy_type, enemy_object, battle_logic, audio_lockout)
+    elif use_item == 3 and smokescreen_quantity != 0:
+        if enemy_type != 'juniper' or enemy_type != 'juniper_phase_two' or enemy_type != 'juniper_phase_three':
+            print("\nYou have used the Smokescreen! The battlefield is engulfed in a thick cloud of smoke.")
+            time.sleep(1)
+            print("\nYou use this to your advantage, and slip away unharmed!")
+            time.sleep(1)
+            battle_logic.stop_music()   # Halt playback of the battle music.
+            player.use_smokescreen(area)
+        else:
+            print("\nYou can't use that item here!")
+            inventory(enemy_type, enemy_object, battle_logic, audio_lockout)
     elif use_item == 4:
         fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout)
     else:
@@ -1732,10 +1749,12 @@ def expert_checkpoint_restart():
         choice = int(input("You have died on Expert Mode! Will you retry or quit? \n1] Retry\n2] Quit\n--> "))
         if choice == 1:
             player.grant_default_inventory()    # Reset inventory items
+            print("\nGood luck!")
             area1()
         elif choice == 2:
             player = player_expert_cache    # Return the player's original stats.
-            gameBeatWarp()
+            print("\nAll of your previous stats and items have been returned.")
+            game_beat_extras()
         else:
             expert_checkpoint_restart()
     except ValueError:
@@ -1744,7 +1763,7 @@ def expert_checkpoint_restart():
 
 
 def game_over():
-    global basic_graphics_enabled, expertModeEnabled, checkedHyperPotion
+    global basic_graphics_enabled, expert_mode_enabled, checkedHyperPotion
     checkedHyperPotion = False
     if not mute_audio:
         pygame.mixer.music.load("sfx/gameover.ogg")
@@ -1768,7 +1787,7 @@ def game_over():
                                      █    ▐   ▐     ▐  """)
     else:
         print("\n== GAME OVER ==\n")
-    if not expertModeEnabled:
+    if not expert_mode_enabled:
         restart_from_checkpoint()
     else:
         expert_checkpoint_restart()
@@ -1809,6 +1828,7 @@ def chest8():
         print("\nYou did not take the Potion of Healing. You wander back over to your previous position before the door.")
         time.sleep(1.5)
         chapterEightChoice()
+
 
 def postCreditsExpertMode():
     global mute_audio, basic_graphics_enabled
@@ -1892,7 +1912,7 @@ def restore_cached_stats():  # This function kicks in after you beat Expert Mode
 
 
 def DTDCredits():
-    global mute_audio, creditsRolled, gameBeat, basic_graphics_enabled, expertModeEnabled, player
+    global mute_audio, creditsRolled, gameBeat, basic_graphics_enabled, expert_mode_enabled, player
     if not mute_audio:
         if not gameBeat:
             try:
@@ -2007,7 +2027,8 @@ def ask_view_stats():
         choice = int(input("\nWould you like to see your stats?\n1] Yes\n2] No\n--> "))
         if choice == 1:
             print(generate_header('YOUR STATS'))
-            print(str(player.get_stats()))
+            player_name, player_health, player_max_health, player_attack_damage = player.get_stats()
+            print(f"\n{player_name}\nDEFENCE: {player_health}/{player_max_health}\nATTACK: {player_attack_damage}\nHOLDING:")
         elif choice == 2:
             pass
         else:
@@ -2121,7 +2142,7 @@ def enemy_defeated(enemy_type, enemy_object, battle_logic, audio_lockout):  # Lo
 
 def examine_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):   # When the player selects 'Examine' during
     global player                                                           # battle, this displays relevant info.
-    player_stats = player.get_stats()
+    player_name, player_health, player_max_health, player_attack_damage = player.get_stats()
     defensive_items = player.get_defensive_items()
     enemy_stats = enemy_object.get_stats()
     enemy_name = 'EMPEROR JUNIPER:'
@@ -2133,23 +2154,22 @@ def examine_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):   # Wh
         enemy_name = 'EMPEROR JUNIPER (PHASE TWO):'
     elif enemy_type == 'juniper_phase_three':
         enemy_name = 'EMPEROR JUNIPER (PHASE THREE):'
-    print("\n"+str(player_stats)+"\nHOLDING:")
+    print(f"\nYOU ({player_name}):\nATTACK: {player_attack_damage}\nDEFENCE: {player_health}/{player_max_health}")
     if defensive_items is not None:
-        for item in defensive_items:
-            print("- " + str(item))
+        print("HOLDING: "+", ".join(defensive_items))
     print("\n\n"+str(enemy_name)+str(enemy_stats))
     time.sleep(0.5)
     fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout)
 
 
 def run_from_battle(enemy_type, enemy_object, battle_logic, audio_lockout):
-    global expertModeEnabled
+    global expert_mode_enabled
     if enemy_type == 'juniper' or enemy_type == 'juniper_phase_two' or enemy_type == 'juniper_phase_three':
         print("\nThere's no running from this battle!")
         time.sleep(1)
         enemy_attack_player(enemy_type, enemy_object, battle_logic, audio_lockout)
     max_escape_chance = 5
-    if expertModeEnabled:
+    if expert_mode_enabled:
         max_escape_chance = 10
     chance = random.randint(0, int(max_escape_chance))
     if chance != 1:
@@ -2164,7 +2184,7 @@ def run_from_battle(enemy_type, enemy_object, battle_logic, audio_lockout):
 
 
 def enemy_attack_player(enemy_type, enemy_object, battle_logic, audio_lockout):
-    global player, disable_critical, player_only_critical, expertModeEnabled
+    global player, disable_critical, player_only_critical, expert_mode_enabled
     enemy_friendly_name = 'not specified'   # This variable controls the text that is shown on the enemy's turn.
     returned_value = 0  # This variable is the damage that is dealt by an enemy.
     attack_message = '\n'   # This is used to let the player know they've received a critical hit. By default, it's a new line.
@@ -2174,8 +2194,8 @@ def enemy_attack_player(enemy_type, enemy_object, battle_logic, audio_lockout):
         enemy_friendly_name = "The High Ranking Guard"
     elif enemy_type == 'juniper' or enemy_type == 'juniper_phase_two' or enemy_type == 'juniper_phase_three':
         enemy_friendly_name = "Emperor Juniper"
-    if not disable_critical or not player_only_critical:
-        if battle_logic.guard_critical_hit(expertModeEnabled):
+    if not disable_critical or not player_only_critical:    # Only execute this code if the player has allowed critical hits from enemies.
+        if battle_logic.critical_hit(expert_mode_enabled, type="enemy"):
             returned_value = enemy_object.land_critical_hit()
             attack_message = "\nIt's a critical hit! "
         else:
@@ -2183,7 +2203,7 @@ def enemy_attack_player(enemy_type, enemy_object, battle_logic, audio_lockout):
     else:
         returned_value = enemy_object.get_attack()
     time.sleep(0.5)     # Add a slight delay, to help with reading.
-    print(str(attack_message)+str(enemy_friendly_name)+" attacks, dealing "+str(returned_value)+" damage!")
+    print(str(attack_message)+str(enemy_friendly_name)+" attacks, dealing "+str(returned_value)+" damage!") # Format into a summary of the attack, which includes if a critical hit was landed and the amount of damage inflicted.
     player.sustain_damage(returned_value)
     time.sleep(0.5)
     print("\nYou have "+str(player.get_health())+" health remaining.")
@@ -2195,10 +2215,10 @@ def enemy_attack_player(enemy_type, enemy_object, battle_logic, audio_lockout):
 
 
 def fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):
-    global mute_audio, player, enemy_only_critical, disable_critical
+    global mute_audio, player, enemy_only_critical, disable_critical, expert_mode_enabled
     returned_value = 0
-    attack_message = 'default'
-    enemy_friendly_name = 'default'
+    attack_message = 'default'  # This is the text that is shown to the player when attacking an enemy.
+    enemy_friendly_name = 'default'  # This is the name of the enemy, which is shown to the player.
     hyper_use_count = int(player.get_hyper_use_count())     # Returns the use count for the Hyper Potion item.
     if enemy_type == 'juniper' or enemy_type == 'juniper_phase_two' or enemy_type == 'juniper_phase_three':
         player.set_hyper_use_count(0)
@@ -2210,7 +2230,11 @@ def fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):
     if hyper_use_count > 0:
         if battle_logic.has_hyper_potion_worn_off(hyper_use_count):
             print("\nThe effects of the hyper potion have worn off! Attack and defence have been reverted to their\nprevious values.")
-            player.hyper_potion_end()   # Restore stats.
+            player.hyper_potion_end()   # Restore stats after the Hyper Potion has worn off.
+        else:
+            player.reduce_hyper_potion_use()
+            if debug != 0:
+                print(hyper_use_count)
     if not mute_audio and not audio_lockout:
         battle_logic.play_music()
         audio_lockout = True
@@ -2222,7 +2246,7 @@ def fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):
     if choice == 1:
         if hyper_use_count == 0:    # hyper_use_count is zero if the Hyper Potion hasn't been used.
             if enemy_only_critical is True or disable_critical is True:     # Only run through the critical hit logic if the player has not disabled this behaviour.
-                if battle_logic.player_critical_hit():  # If this method returns True, then the player successfully initiated a critical hit.
+                if battle_logic.critical_hit(expert_mode_enabled, type="player"):  # If this method returns True, then the player successfully initiated a critical hit.
                     returned_value = player.land_critical_hit(int(enemy_object.get_health()))
                     attack_message = "You land a critical hit! You strike "+str(enemy_friendly_name)+", dealing "
             else:
@@ -2236,8 +2260,8 @@ def fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):
         time.sleep(0.5)
         print("\n"+str(enemy_friendly_name)+" has "+str(enemy_object.get_health())+" health remaining.")
         time.sleep(0.5)
-        if battle_logic.is_dead(int(enemy_object.get_health())):  # Passes enemy health to the is_dead method.
-            battle_logic.stop_music()
+        if battle_logic.is_dead(int(enemy_object.get_health())):  # Passes enemy health to the is_dead method, to check if the enemy has any health remaining.
+            battle_logic.stop_music()   # Stops the battle music.
             print("\nYou are victorious!")
             enemy_defeated(enemy_type, enemy_object, battle_logic, audio_lockout)
     elif choice == 2:
@@ -2253,7 +2277,7 @@ def fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):
 
 
 def encounter_enemy(enemy_type):                   # The encounter_enemy function takes the enemy_type as a parameter, and displays
-    global basic_graphics_enabled, expertModeEnabled, area  # the appropriate character artwork. There are two sprites; one for normal gameplay,
+    global basic_graphics_enabled, expert_mode_enabled, area  # the appropriate character artwork. There are two sprites; one for normal gameplay,
     enemy_encounter_message = "default"            # and one for players with Basic Graphics mode enabled. The global variable
     enemy_sprite = "default"                       # basic_graphics_enabled is used to choose the correct sprite. It also initialises the
     if enemy_type == 'juniper' or enemy_type == 'juniper_phase_two' or enemy_type == 'juniper_phase_three':     # enemy as an object.
@@ -2346,14 +2370,14 @@ def encounter_enemy(enemy_type):                   # The encounter_enemy functio
           ()"""
         # Juniper init; sets the appropriate attack / defence levels.
         enemy_encounter_message = "Emperor Juniper draws his sword!"
-        if expertModeEnabled:
+        if expert_mode_enabled:
             enemy_object = Juniper(5, 20, 20, 0)
         else:
             enemy_object = Juniper(7, 22, 22, 0)
-        if enemy_object.get_phase() == 2 and not expertModeEnabled:
+        if enemy_object.get_phase() == 2 and not expert_mode_enabled:
             enemy_object.set_health(25)
             enemy_object.set_attack(8)
-        elif enemy_object.get_phase() == 2 and expertModeEnabled:
+        elif enemy_object.get_phase() == 2 and expert_mode_enabled:
             enemy_object.set_attack(6)
         battle_logic = BattleLogic('juniper', 'sfx/puppets.ogg')
     elif enemy_type == 'guard':
@@ -2506,46 +2530,47 @@ def encounter_enemy(enemy_type):                   # The encounter_enemy functio
     fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout)
 
 
-def preShowdown():
-    global expertModeEnabled
+def before_juniper_fight():
+    global expert_mode_enabled
     print("\nYou push on the door, and it creaks open. The loud squeal of the hinges makes you jump.")
     time.sleep(1.5)
     try:
         choice = int(input("\nProceed through the door? [1] Yes [2] No "))
+        if choice == 1:
+            print(
+                "\nMustering up the courage, you fight the trembles and press on forward through the door, into the unknown...")
+            time.sleep(5)
+            print(
+                "\nYou find yourself in a huge room. Stony walls stretch upwards to a mossy ceiling. Torches cast an eerie flickering glow around the room.")
+            time.sleep(3)
+            print("\nHuge stone pillars line the interior of this room, and ivy creeps up all of them.")
+            time.sleep(3)
+            print(
+                "\nSuddenly, you freeze. In the center of this room is a raised section with a throne sitting proudly on top. On this throne, sits Emperor Juniper.")
+            time.sleep(3.5)
+            print(
+                "\nHe's unlike anything you've seen up until this point. His hair is unkempt and wild. His beard is a mess and is full of knots.")
+            time.sleep(3.5)
+            print(
+                "\nIn his hand he holds a samurai sword. His eyes dart around the room, dancing manically. He looks nothing like he used to; a shell of his former self.")
+            time.sleep(3.5)
+            print("\nA sickly grin adorns his face. You stand, mouth ajar, unsure what to think.")
+            time.sleep(3.5)
+            print(
+                "\nSuddenly, his eyes lock onto you. His expression changes; what used to be a maniacal grin is now a foreboding frown.")
+            time.sleep(3.5)
+            print("\nHe lets out a startling yell and points at you. You feel nauseous and your legs feel weak.")
+            time.sleep(3.5)
+            print("\nSwiftly, he leaps to his feet and charges at you. This is it.")
+            time.sleep(5)
+            encounter_enemy('juniper')
+        else:
+            print("\nNot quite ready to press on just yet, you evaluate your other options.")
+            time.sleep(1.5)
+            chapterEightChoice()
     except ValueError:
-        preShowdown()
-    if choice == 1:
-        print(
-            "\nMustering up the courage, you fight the trembles and press on forward through the door, into the unknown...")
-        time.sleep(3)
-        print(
-            "\nYou find yourself in a huge room. Stony walls stretch upwards to a mossy ceiling. Torches cast an eerie flickering glow around the room.")
-        time.sleep(3)
-        print("\nHuge stone pillars line the interior of this room, and ivy creeps up all of them.")
-        time.sleep(3)
-        print(
-            "\nSuddenly, you freeze. In the center of this room is a raised section with a throne sitting proudly on top. On this throne, sits Emperor Juniper.")
-        time.sleep(3.5)
-        print(
-            "\nHe's unlike anything you've seen up until this point. His hair is unkempt and wild. His beard is a mess and is full of knots.")
-        time.sleep(3.5)
-        print(
-            "\nIn his hand he holds a samurai sword. His eyes dart around the room, dancing manically. He looks nothing like he used to; a shell of his former self.")
-        time.sleep(3.5)
-        print("\nA sickly grin adorns his face. You stand, mouth ajar, unsure what to think.")
-        time.sleep(3.5)
-        print(
-            "\nSuddenly, his eyes lock onto you. His expression changes; what used to be a maniacal grin is now a foreboding frown.")
-        time.sleep(3.5)
-        print("\nHe lets out a startling yell and points at you. You feel nauseous and your legs feel weak.")
-        time.sleep(3.5)
-        print("\nSwiftly, he leaps to his feet and charges at you. This is it.")
-        time.sleep(5)
-        encounter_enemy('juniper')
-    else:
-        print("\nNot quite ready to press on just yet, you evaluate your other options.")
-        time.sleep(1.5)
-        chapterEightChoice()
+        before_juniper_fight()
+
 
 
 def chapterEightChoice():
@@ -2555,7 +2580,7 @@ def chapterEightChoice():
         if choice == 1:
             print("\nYou wander over to the door. Your heart sinks. You have a feeling that whatever lies behind this door is serious.")
             time.sleep(1.5)
-            preShowdown()
+            before_juniper_fight()
         elif choice == 2 and searchedChest8 is True:
             print("\nThis chest has already been searched, and there is no loot remaining.")
             time.sleep(1.5)
@@ -2621,7 +2646,7 @@ def chapterEight():
             chapterEightChoice()
 
 def postChest7():
-    global player, expertModeEnabled
+    global player, expert_mode_enabled
     print(
         "\nYou gaze down the long, dark corridor that lays ahead of you. A familiar feeling of terror hangs over you.")
     time.sleep(1.5)
@@ -2633,7 +2658,7 @@ def postChest7():
         print("\nYou proceed onwards, into the unknown...")
         time.sleep(1)
         player.set_save_location(7)
-        if not expertModeEnabled:
+        if not expert_mode_enabled:
             askSave()
         else:
             chapterEight()
@@ -2929,7 +2954,7 @@ def noticedLever():
         chapterSixChoice()
 
 def chapterSixChoice():
-    global leverPulled, leftDialCorrect, rightDialCorrect, puzzleComplete, player, expertModeEnabled
+    global leverPulled, leftDialCorrect, rightDialCorrect, puzzleComplete, player, expert_mode_enabled
     if leftDialCorrect is True and rightDialCorrect is True and leverPulled is True and lockout is False:
         puzzleSuccess()
     try:
@@ -2973,7 +2998,7 @@ def chapterSixChoice():
         print("\nShielding your eyes, you step forward, into the light...")
         time.sleep(1.5)
         player.set_save_location(6)
-        if not expertModeEnabled:
+        if not expert_mode_enabled:
             askSave()
         else:
             chapterSeven()
@@ -3064,7 +3089,7 @@ def turnBackToCourtyard():
         courtyard()
 
 def backInsideFromCourtyard():
-    global courtyardKey, foundCourtyardDoor, player, courtyardGuardKilled, expertModeEnabled
+    global courtyardKey, foundCourtyardDoor, player, courtyardGuardKilled, expert_mode_enabled
     choice = int(input(
         "\nAfter some walking, you reach a door which appears to lead back inside the dungeon. Enter [1], or continue to explore the courtyard [2]? "))
     if choice == 1:
@@ -3085,7 +3110,7 @@ def backInsideFromCourtyard():
             print("\nBreathing a sigh of relief, you nervously press on forward, into the depths of the unknown...")
             time.sleep(3)
             player.set_save_location(5)
-            if not expertModeEnabled:
+            if not expert_mode_enabled:
                 askSave()
             else:
                 chapterSix()
@@ -3221,7 +3246,7 @@ def chapterFive():
     chapter5Corridor()
 
 def findTheExit():
-    global player, expertModeEnabled
+    global player, expert_mode_enabled
     global findExit
     findExit = True
     choice = int(
@@ -3253,13 +3278,13 @@ def findTheExit():
         print(
             "\nFighting the odour, you push the trapdoor open, revealing a narrow, spiral staircase leading down. With no other options, you begin to descend...")
         player.set_save_location(4)
-        if not expertModeEnabled:
+        if not expert_mode_enabled:
             askSave()
         else:
             chapterFive()
 
 def defeatedHighRank():
-    global discoveredPadlock, highRank, expertModeEnabled
+    global discoveredPadlock, highRank, expert_mode_enabled
     global player
     global debug
     if highRank is True:
@@ -3292,7 +3317,7 @@ def defeatedHighRank():
         player.set_save_location(4)
         if debug != 0:
             print(savePoint)
-        if not expertModeEnabled:
+        if not expert_mode_enabled:
             askSave()
         else:
             chapterFive()
@@ -3423,10 +3448,7 @@ def rightDoor():
 
 def leftChest():
     global gotKey
-    search = 0
     global playerHealth, playerMaxHealth
-    if debug != 0:
-        print(gotKey)
     try:
         search = int(input(
             "\nEventually, you reach the end of the corridor. A lone wooden chest lays forlorn and forgotten in a corner. Search it? [1] = yes, [2] = no "))
@@ -3507,7 +3529,7 @@ def backInside():
 
 def balcony():
     global gotRope
-    global player, expertModeEnabled
+    global player, expert_mode_enabled
     print("You get to the door, and without thinking, fling yourself outside...")
     time.sleep(3)
     print(" ")
@@ -3572,7 +3594,7 @@ def balcony():
         player.set_save_location(3)
         if debug > 0:
             print(savePoint)
-        if not expertModeEnabled:
+        if not expert_mode_enabled:
             askSave()
         else:
             backInside()
@@ -3598,8 +3620,6 @@ def defeatedSecondGuard():
     balcony()
 
 def fightSecond():
-    global musicStop
-    global musicLoop
     global area
     time.sleep(1)
     print(
@@ -3607,8 +3627,6 @@ def fightSecond():
     time.sleep(2)
     print("\nYou ready yourself for yet another battle! The payoff better be worth the risk...")
     time.sleep(2)
-    musicStop = False
-    musicLoop = False
     area = 5
     encounter_enemy('guard')
 
@@ -3747,9 +3765,9 @@ def chase():
 
 
 def chest():
-    global searchedChest, expertModeEnabled
+    global searchedChest, expert_mode_enabled
     chest_item = 'Smokescreen'
-    if expertModeEnabled:
+    if expert_mode_enabled:
         chest_item = 'Healing Potion'
     try:
         choice = int(input("\nYou reach a chest. Will you search it [1], or exit back up the stairs [2]? "))
@@ -3770,7 +3788,7 @@ def chest():
         chest()
 
 def outsideConfinement():
-    global area, expertModeEnabled
+    global area, expert_mode_enabled
     area = 2
     global playerMaxHealth
     global gotShield
@@ -3874,7 +3892,7 @@ def escape():
     outsideConfinement()
 
 def getKeys():
-    global player, expertModeEnabled
+    global player, expert_mode_enabled
     print("\nYou flick the rope towards the keys...")
     time.sleep(3)
     print("\nAnd... success! The keys appear to be intertwined with the small chain.")
@@ -3902,7 +3920,7 @@ def getKeys():
     print(
         "\nYou exhale sharply as the lock releases its grip on the sturdy door. You toss the rope aside, before pushing the door open slowly...")
     player.set_save_location(2)
-    if not expertModeEnabled:
+    if not expert_mode_enabled:
         askSave()
     else:
         escape()
@@ -3990,25 +4008,25 @@ def chooseObjectSearch():
         chooseObjectSearch()
 
 def ChapterTwoGuardEscape():
-    global expertModeEnabled, player
+    global expert_mode_enabled, player
     time.sleep(2)
     print(
         "\nYou have managed to escape the guard! In his confusion, the guard darts off out of the room outside the cell.")
     time.sleep(1)
     print("\nCould he be fetching backup? One thing's for certain, you don't want to stick around to find out...")
-    if not expertModeEnabled:
+    if not expert_mode_enabled:
         player.set_save_location(2)
         askSave()
     else:
         escape()
 
 def defeatedChapterTwoGuard():
-    global playerHealth, playerMaxHealth, expertModeEnabled, player
+    global playerHealth, playerMaxHealth, expert_mode_enabled, player
     print(
         "\nYou gaze down at the guard laying motionless in the doorway. You take a deep breath, before stepping over the defeated guard.")
     time.sleep(1)
     print("\nYou cautiously step out of your cramped cell, into the newly revealed room...")
-    if not expertModeEnabled:
+    if not expert_mode_enabled:
         player.set_save_location(2)
         askSave()
     else:
@@ -4143,21 +4161,15 @@ package of what appears to be food through the opening and promptly slams the ha
 
 def debugWarp():
     global damage, debug, hyperPotion, hyperpotionQuantity, area, playerHealth, healingPotion, healingpotionQuantity, playerName, playerMaxHealth, player
-    funcWarp = input("\n== WARP ==\nType the location you wish to warp to, or type 'end' to quit: ")
+    funcWarp = input("\n== WARP ==\nType the location you wish to warp to, or type 'end' to quit. Upon warping to a function, debug mode will be\n"
+                     "enabled automatically.\n\nWarp to where? ")
+    if debug == 0:
+        print("\n= DEBUG MODE ACTIVE =\n")
+        debug = 1
     player = Player(10, 200, 200, "test", inventory={'Healing Potion': 999, 'Hyper Potion': 1, 'Smokescreen': 3},
                     defensive_items=['dummy', 'dummy2'], has_beaten_game=False, has_completed_expert_mode=False, save_location=3)    # Create a dummy player so the game doesn't crash
-    if debug == 0:
-        choice = input("Enable debug mode? (y/n): ")
-        if choice == "y":
-            debug += 1
-    else:
-        choice = input("Debug mode is enabled, disable it? (y/n): ")
-        if choice == "y":
-            debug = 0
     if funcWarp == "save":
         askSave()
-    elif funcWarp == "downloadUpdate":
-        downloadUpdate()
     elif funcWarp == "newVer" or funcWarp == "newver":
         ask_download_update(method_of_access=input("Method of access = "), contents=b"3.0.1")
     elif funcWarp == "end":
@@ -4169,6 +4181,9 @@ def debugWarp():
         encounter_enemy(choice)
     elif funcWarp == "chapter":
         warp_to_chapter(save_location=int(input("Enter a value for save_location: ")))
+    elif funcWarp == "crash":
+        handle_error(description="Sample description generated by debug_warp", e="Sample traceback")
+        debugWarp()
     else:
         print("'" + funcWarp + "' is not a recognised function or warp location. Check spelling and try again.\n")
         debugWarp()
@@ -4179,7 +4194,7 @@ def play_audio(selection, friendlyname, description):
         pygame.mixer.music.load('sfx/'+str(selection)+'.ogg')
     except Exception as e:
         description = "An error occurred when loading the audio track."
-        generate_error_message(description, e)
+        handle_error(description, e)
         audioPlayer()
     pygame.mixer.music.play(0)
     print("\nNOW PLAYING:\n"+str(friendlyname)+"\n\nABOUT THIS TRACK:\n"+str(description))
@@ -4219,9 +4234,9 @@ def audioPlayer():
         try:
             print("██████████████████████████████████\n18] Quit")
         except Exception:
-            print("===============================\n18] Quit")
+            print("==================================\n18] Quit")
     if basic_graphics_enabled is True or classic_theme_enabled is True:
-        print("===============================\n18] Quit")
+        print("==================================\n18] Quit")
     try:
         choice = int(input("--> "))
     except ValueError:
@@ -4342,139 +4357,88 @@ verison that was used in-game. I really liked it so it stuck!"""
     elif choice == 17:
         selection = 'curtain_call'
     else:
-        gameBeatWarp()
+        game_beat_extras()
     play_audio(selection, friendlyname, description)
 
-def testSound():
-    global sound_module_error, sound_directory_error, basic_graphics_enabled, classic_theme_enabled
-    if sound_module_error is True:
-        print("Sound test cannot be accessed because the required module 'pygame' is not installed.")
-        audioOptions()
-    elif sound_directory_error is True:
-        print("Sound test cannot be accessed because audio data could not be loaded.")
-        audioOptions()
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("\n█ AUDIO TEST: ░▒▒█████████████████")
-    else:
-        print("\n== AUDIO TEST ==")
-    time.sleep(0.5)
+
+def sound_test():
+    print(generate_header("SOUND TEST"))
     try:
-        pygame.mixer.music.load("sfx/groove.ogg")
+        pygame.mixer.music.load("sfx/groov.ogg")
     except Exception as e:
         description = "The test audio could not be loaded."
-        generate_error_message(description, e)
-        audioOptions()
+        handle_error(description, e)
+        audio_settings()
     pygame.mixer.music.play(15)
-    print("Can you hear a tune playing? If so, sound should be working!\n1] I hear a tune\n2] I can't hear anything")
+    print("Can you hear a tune playing? If so, sound should be working.\n1] I hear a tune\n2] I can't hear anything")
     try:
         choice = int(input("--> "))
     except ValueError:
         pygame.mixer.music.stop()
-        audioOptions()
+        audio_settings()
     if choice == 1:
         print("Great, sound is configured and working properly!")
         time.sleep(0.2)
         pygame.mixer.music.stop()
-        audioOptions()
+        audio_settings()
     elif choice == 2:
         pygame.mixer.music.stop()
         print(
             "\nHere are some things you can try:\n-Ensure volume is turned up on your device\n-Restart the program\n-Reinstall pygame (Source code users only)\n-Ensure audio isn't muted in the game\n-Ensure the game's audio files have been downloaded and saved in the same folder as the Python script\n-Uninstall and reinstall the program (Windows users only)\n\nIf none of the above steps work for you, reach out! Use the 'Report a bug' feature in the 'Options' menu in order to report a bug.")
-        try:
-            choice2 = int(input(
-                "\nRepeat sound test or return to the previous menu?\n1] Repeat the test\n2] Return to previous menu\n--> "))
-        except ValueError:
-            audioOptions()
-        if choice2 == 1:
-            testSound()
-        elif choice2 == 2:
-            print(" ")
-            audioOptions()
-        else:
-            pass
+        audio_settings()
     else:
         pygame.mixer.music.stop()
-        testSound()
+        sound_test()
 
-def audioOptions():
-    global audioMuted
+
+def audio_settings():
     global sound_directory_error, basic_graphics_enabled, classic_theme_enabled, mute_audio, no_pygame
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        try:
-            print("\n█ SOUND SETTINGS: ░▒▒██████████████")
-        except Exception:
-            print("\n== SOUND SETTINGS ==")
-    if basic_graphics_enabled is True or classic_theme_enabled:
-        print("\n== SOUND SETTINGS ==")
+    sound_error_message = "the Pygame module could not be imported"
+    if sound_directory_error:
+        sound_error_message = "audio data could not be accessed"
+    print(generate_header("SOUND SETTINGS"))
     if mute_audio is True:
         print("1] Unmute audio\n2] Test audio")
     else:
         print("1] Mute audio\n2] Test audio")
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
-    else:
-        print("===============================")
+    elif basic_graphics_enabled and classic_theme_enabled:
+        print("==================================")
     try:
         choice = int(input("3] Cancel\n--> "))
     except ValueError:
         print("\nBad input. Only an integer can be entered here!")
-        audioOptions()
+        audio_settings()
     if choice == 1 and mute_audio is not True:
         if mute_audio != True:
             mute_audio = True
-            audioMuted = True
-            print("Saving changes...")
-            time.sleep(0.2)
             with open('savedprefs.dat', 'wb') as f:
                 pickle.dump([mute_audio], f, protocol=2)
             print("Audio has been muted.")
-            audioOptions()
+            audio_settings()
     elif choice == 1 and mute_audio is True:
-        if no_pygame:
-            print("Audio cannot be unmuted because Pygame has not been loaded.")
-            audioOptions()
-        elif sound_directory_error is True:
-            print("Audio cannot be unmuted because audio data could not be loaded.")
-            audioOptions()
+        if sound_module_error or sound_directory_error or no_pygame:
+            print(f"\nYou cannot unmute audio because {sound_error_message}. \nVisit: https://reubenparfrey.wixsite.com/deathtrapdungeon/help to fix this error, then try again.")
+            audio_settings()
         else:
-            print("Saving changes...")
             mute_audio = False
-            audioMuted = False
             with open('savedprefs.dat', 'wb') as f:
                 pickle.dump([mute_audio], f, protocol=2)
             if debug != 0:
                 print(mute_audio)
             print("Audio has been unmuted.")
-            audioOptions()
+            audio_settings()
     elif choice == 2:
-        time.sleep(0.4)
-        testSound()
+        if sound_module_error or sound_directory_error or no_pygame:
+            print(f"\nYou cannot access the Sound Test because {sound_error_message}. \nVisit: https://reubenparfrey.wixsite.com/deathtrapdungeon/help to fix this error, then try again.")
+            audio_settings()
+        else:
+            sound_test()
     elif choice == 3:
         settings()
     else:
-        audioOptions()
-
-
-def updateFailure():
-    time.sleep(0.7)
-    print(
-        "\nAn error occurred, and the data could not be downloaded. Choose an option to continue:\n1] Retry\n2] Download updates manually\n3] See detailed error info (advanced)\n4] Get help online/Report a bug\n5] Cancel")
-    try:
-        choice = int(input("--> "))
-    except ValueError:
-        updateFailure()
-    if choice == 1:
-        downloadUpdate()
-    elif choice == 2:
-        webbrowser.open("https://reubenparfrey.wixsite.com/deathtrapdungeon/downloads/")
-    elif choice == 3:
-        print(e)
-        updateFailure()
-    elif choice == 4:
-        webbrowser.open("https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
-        updateFailure()
-    else:
-        menu()
+        audio_settings()
 
 
 def confirm_erase_choice(savefile):
@@ -4490,7 +4454,7 @@ def confirm_erase_choice(savefile):
     except ValueError:
         confirm_erase_choice(savefile)
     except FileNotFoundError as e:
-        generate_error_message("The file could not be deleted.", e)
+        handle_error("The file could not be deleted.", e)
         erase_save_data()
 
 
@@ -4516,33 +4480,26 @@ def ask_erase_save(filename):
 
 
 def erase_save_data():
-    global confirmDelete1, confirmDelete2, confirmDelete3, basic_graphics_enabled, classic_theme_enabled
+    print(generate_header("DELETE SAVE FILE"))
     slots = [
         {'number': 1, 'filename': 'savedata.dat'},
         {'number': 2, 'filename': 'savedata2.dat'},
         {'number': 3, 'filename': 'savedata3.dat'}
     ]
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        try:
-            print("\n█ DELETE SAVE DATA: ░▒▒████████████")
-        except Exception:
-            print("\n== DELETE SAVE DATA ==")
-    if basic_graphics_enabled is True or classic_theme_enabled is True:
-        print("\n== DELETE SAVE DATA ==")
     print("Select a save file to erase:")
     for slot_info in slots:
         display_save_slot_info(slot_info)
-    if not basic_graphics_enabled:
-        print("██████████████████████████████████\n4] Cancel")
-    else:
-        print("===============================\n4] Cancel")
+    if not basic_graphics_enabled and not classic_theme_enabled:
+        print("██████████████████████████████████")
+    elif basic_graphics_enabled and classic_theme_enabled:
+        print("==================================")
     try:
-        choice = int(input("--> "))
+        choice = int(input("4] Cancel\n--> "))
         if 1 <= choice <= 3:
             slot_info = next((slot for slot in slots if slot['number'] == choice), None)
             ask_erase_save(slot_info['filename'])
         elif choice == 4:
-            settings()
+            advanced_settings()
         else:
             print("\nPlease select a valid option.")
             erase_save_data()
@@ -4552,23 +4509,23 @@ def erase_save_data():
 
 
 def auto_update_settings():
-    global skipUpdateCheck
+    global auto_updates_disabled
     user_feedback = "disabled."
-    if not skipUpdateCheck or skipUpdateCheck is [False]:
+    if not auto_updates_disabled or auto_updates_disabled is [False]:
         print("\nAutomatic Updates are enabled. With this on, DeathTrap Dungeon will periodically check for updates\nwhenever it is launched, and notify you when a new version is out. Would you like to disable this?")
     else:
         print("\nAutomatic Updates are disabled. Would you like to enable them?")
     try:
         choice = int(input("1] Yes\n2] No\n--> "))
         if choice == 1:
-            if not skipUpdateCheck or skipUpdateCheck is [False]:
-                skipUpdateCheck = True
+            if not auto_updates_disabled or auto_updates_disabled is [False]:
+                auto_updates_disabled = True
             else:
-                skipUpdateCheck = False
+                auto_updates_disabled = False
                 user_feedback = "enabled."
             print("Saving changes...")
             with open('updateprefs.dat', 'wb') as f:
-                pickle.dump([skipUpdateCheck], f, protocol=2)
+                pickle.dump([auto_updates_disabled], f, protocol=2)
             print("Automatic Updates are now "+str(user_feedback))
             software_update_settings()
         elif choice == 2:
@@ -4581,132 +4538,137 @@ def auto_update_settings():
 
 
 def software_update_settings():
-    global skipUpdateCheck
+    global auto_updates_disabled
     auto_update_toggle = "Disable "
-    if skipUpdateCheck:
+    if auto_updates_disabled:
         auto_update_toggle = "Enable "
     print(generate_header("SOFTWARE UPDATES"))
     print("1] Check for Updates\n2] "+str(auto_update_toggle)+"Automatic Updates")
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
-    else:
-        print("===============================")
+    elif basic_graphics_enabled and classic_theme_enabled:
+        print("==================================")
     try:
         choice = int(input("3] Cancel\n--> "))
     except ValueError:
         software_update_settings()
     if choice == 1:
         print("Checking for updates...")
-        check_network_connection(method_of_access='manual')  # Check internet connection and begin the update process.
-        software_update_settings()                           # The variable 'method_of_access' is set to 'manual', so
-    elif choice == 3:                                        # the game knows that the user initiated the update check.
+        if check_network_connection():          # Returns True if there is an active network connection.
+            check_for_updates(method_of_access='manual')    # The variable 'method_of_access' is set to 'manual', so
+        else:                                               # the game knows that the user initiated the update check.
+            print("\nYou are not connected to the internet. Check your network connection and try again.")
+        software_update_settings()
+    elif choice == 3:
         settings()
     elif choice == 2:
         auto_update_settings()
     else:
         software_update_settings()
 
-def disableBasicGraphics():
+
+def disable_basic_graphics():
     global basic_graphics_enabled, classic_theme_enabled
     print("Disabling Basic Graphics mode...")
     basic_graphics_enabled = False
-    time.sleep(0.5)
-    print("Saving settings...")
-    time.sleep(0.2)
+    classic_theme_enabled = False
     with open('graphics_configuration.dat', 'wb') as f:
         pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
     print("\nBasic Graphics mode has been disabled.")
-    classic_theme_enabled = False
-    videoSettings()
+    graphics_settings()
 
 
-def enableBasicGraphics():
+def enable_basic_graphics():
     global basic_graphics_enabled, classic_theme_enabled
     print("Applying Basic Graphics mode...")
     basic_graphics_enabled = True
+    classic_theme_enabled = True
     time.sleep(0.5)
-    print("Saving settings...")
-    time.sleep(0.2)
     with open('graphics_configuration.dat', 'wb') as f:
         pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
     print("\nBasic Graphics mode has been enabled.")
-    videoSettings()
+    graphics_settings()
 
 
-def graphicsMode():
-    global basic_graphics_enabled, automaticallyEnabledBasicGraphics
+def ask_basic_graphics():
+    global basic_graphics_enabled, auto_applied_basic_graphics
     if basic_graphics_enabled is False or basic_graphics_enabled is [False]:
         try:
             choice = int(input(
                 "\nBasic Graphics mode is designed for systems that incorrectly display the game's graphics. When this setting is enabled,\ngraphics are displayed in a much more simple way. It's only recommended that you enable Basic Graphics\nmode if you're having issues with how the game's visuals are displayed.\n\nChoose an option to continue:\n1] Apply Basic Graphics Mode\n2] Cancel\n--> "))
+            if choice == 1:
+                enable_basic_graphics()
+            elif choice == 2:
+                graphics_settings()
+            else:
+                invalid_selection_message()
+                ask_basic_graphics()
         except ValueError:
-            graphicsMode()
-        if choice == 1:
-            enableBasicGraphics()
-        elif choice == 2:
-            videoSettings()
-        else:
-            pass
-    elif basic_graphics_enabled is True and automaticallyEnabledBasicGraphics is False or basic_graphics_enabled is [
-        True] and automaticallyEnabledBasicGraphics is False:
+            ask_basic_graphics()
+    elif (basic_graphics_enabled is True and auto_applied_basic_graphics is False or basic_graphics_enabled is
+          [True] and auto_applied_basic_graphics is False):
         try:
             choice = int(input("Disable Basic Graphics mode?\n1] Yes\n2] No\n--> "))
         except ValueError:
-            graphicsMode()
+            ask_basic_graphics()
         if choice == 1:
-            disableBasicGraphics()
+            disable_basic_graphics()
         else:
-            videoSettings()
-    elif basic_graphics_enabled is True and automaticallyEnabledBasicGraphics is True or basic_graphics_enabled is [
-        True] and automaticallyEnabledBasicGraphics is True:
+            graphics_settings()
+    elif (basic_graphics_enabled is True and auto_applied_basic_graphics is True or basic_graphics_enabled is
+          [True] and auto_applied_basic_graphics is True):
         print("\nBasic Graphics mode cannot be disabled as your system can't render unicode characters. For more information, visit:\nhttps://reubenparfrey.wixsite.com/deathtrapdungeon/help/ ")
-        videoSettings()
+        graphics_settings()
 
-def disableClassicTheme():
+
+def disable_classic_theme():
     global basic_graphics_enabled, classic_theme_enabled
     try:
         choice = int(input("\nThe Flow theme is the default visual style of DeathTrap Dungeon. Featuring solid, clean lines\nand subtle but stylish gradients, Flow is a modern re-imagining of the classic DeathTrap Dungeon menu design.\n\nUse this theme?\n1] Yes\n2] No\n--> "))
+        if choice == 1:
+            print("Applying theme...")
+            classic_theme_enabled = False
+            print("Saving settings...")
+            with open('graphics_configuration.dat', 'wb') as f:
+                pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
+            print("Flow theme has been enabled.")
+            time.sleep(0.5)
+            graphics_settings()
+        elif choice == 2:
+            graphics_settings()
+        else:
+            invalid_selection_message()
+            graphics_settings()
     except ValueError:
-        disableClassicTheme()
-    if choice == 1:
-        print("Applying theme...")
-        classic_theme_enabled = False
-        print("Saving settings...")
-        time.sleep(0.2)
-        with open('graphics_configuration.dat', 'wb') as f:
-            pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
-        print("Flow theme has been enabled.")
-        time.sleep(0.5)
-        videoSettings()
-    else:
-        videoSettings()
+        disable_classic_theme()
 
 
-def classicTheme():
+def enable_classic_theme():
     global classic_theme_enabled, basic_graphics_enabled
     if classic_theme_enabled is True:
-        disableClassicTheme()
-    try: choice = int(input("\nThe Classic theme is a throwback to older versions of DeathTrap Dungeon. Making use of simplistic characters,\nClassic theme transforms the look and feel of the game and is perfect for those who prefer the\nmore simplistic look of the menus in older versions of DeathTrap Dungeon.\n\nUse this theme?\n1] Yes\n2] No\n--> "))
+        disable_classic_theme()
+    try:
+        choice = int(input("\nThe Classic theme is a throwback to older versions of DeathTrap Dungeon. Making use of simplistic characters,\nClassic theme transforms the look and feel of the game and is perfect for those who prefer the\nmore simplistic look of the menus in older versions of DeathTrap Dungeon.\n\nUse this theme?\n1] Yes\n2] No\n--> "))
+        if choice == 1:
+            print("Applying theme...")
+            time.sleep(0.2)
+            classic_theme_enabled = True
+            print("Saving settings...")
+            with open('graphics_configuration.dat', 'wb') as f:
+                pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
+            print("Classic Theme has been enabled.")
+            time.sleep(0.5)
+            graphics_settings()
+        else:
+            graphics_settings()
     except ValueError:
-        classicTheme()
-    if choice == 1:
-        print("Applying theme...")
-        time.sleep(0.2)
-        classic_theme_enabled = True
-        print("Saving settings...")
-        with open('graphics_configuration.dat', 'wb') as f:
-            pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
-        print("Classic Theme has been enabled.")
-        time.sleep(0.5)
-        videoSettings()
-    else:
-        videoSettings()
+        enable_classic_theme()
 
 
 def switch_theme_dialogue():
     global classic_theme_enabled, basic_graphics_enabled
-    print(generate_header("APPLY THEME"))
-    print("Select the theme you'd like to use from the list below. Themes can transform the look and \nfeel of the menus, but do not affect in-game graphics.")
+    print(generate_header("CHANGE THEME"))
+    print("Select the theme you'd like to use from the list below. Themes completely transform the look and \nfeel of menus, but do not affect in-game graphics.")
     if classic_theme_enabled:
         flow_selection = "1] Flow (default) [ ]"
         classic_selection = "2] Classic Theme [*]"
@@ -4716,26 +4678,30 @@ def switch_theme_dialogue():
     print(str(flow_selection)+"\n"+str(classic_selection))
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
-    try: choice = int(input("3] Cancel\n--> "))
+    elif basic_graphics_enabled and classic_theme_enabled:
+        print("==================================")
+    try:
+        choice = int(input("3] Cancel\n--> "))
+        if choice == 1 and not classic_theme_enabled or choice == 2 and classic_theme_enabled:
+            print("\nThat theme is already selected. Please choose a different theme.")
+            switch_theme_dialogue()
+        elif choice == 1 and classic_theme_enabled and not basic_graphics_enabled:
+            disable_classic_theme()
+        elif choice == 1 and basic_graphics_enabled:
+            print("\nYou can't use the Flow theme because Basic Graphics mode is enabled. Try disabling Basic Graphics mode in \n'Settings > Graphics > Basic Graphics Mode', and try again.")
+            switch_theme_dialogue()
+        elif choice == 2 and not classic_theme_enabled:
+            enable_classic_theme()
+        elif choice == 3:
+            graphics_settings()
+        else:
+            print("\nPlease select a valid option.")
+            switch_theme_dialogue()
     except ValueError:
         switch_theme_dialogue()
-    if choice == 1 and not classic_theme_enabled or choice == 2 and classic_theme_enabled:
-        print("\nThat theme is already selected. Please choose a different theme.")
-        switch_theme_dialogue()
-    elif choice == 1 and classic_theme_enabled and not basic_graphics_enabled:
-        disableClassicTheme()
-    elif choice == 1 and basic_graphics_enabled:
-        print("\nBasic Graphics mode is enabled, so you can't use the Flow theme. Try disabling Basic Graphics mode in \n'Settings > Graphics > Basic Graphics Mode', and try again.")
-        switch_theme_dialogue()
-    elif choice == 2 and not classic_theme_enabled:
-        classicTheme()
-    elif choice == 3:
-        videoSettings()
-    else:
-        print("\nPlease select a valid option.")
-        switch_theme_dialogue()
 
-def videoSettings():
+
+def graphics_settings():
     global basic_graphics_enabled, classic_theme_enabled
     if basic_graphics_enabled == [True]:
         basic_graphics_enabled = True
@@ -4745,69 +4711,43 @@ def videoSettings():
     print("1] Change Theme\n2] Basic Graphics Mode")
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
+    elif basic_graphics_enabled and classic_theme_enabled:
+        print("==================================")
     try:
         choice = int(input("3] Cancel\n--> "))
     except ValueError:
-        videoSettings()
+        graphics_settings()
     if choice == 1:
         switch_theme_dialogue()
     elif choice == 3:
         print(" ")
         settings()
     elif choice == 2:
-        graphicsMode()
+        ask_basic_graphics()
     else:
         print("I don't understand.")
-        videoSettings()
+        graphics_settings()
 
-def bugReport():
+
+def bug_report():
+    print(generate_header('REPORT A BUG'))
     print("Found a bug or have any suggestions? Select 'Report a Bug Online' to let the developers know! Please note that\nthis will open your web browser.")
     try:
         choice = int(input("1] Report a Bug Online\n2] Cancel\n--> "))
+        if choice == 1:
+            print(f"\nNow opening the bug reporting page in your web browser. Please include the following information in the bug report:\n{get_diagnostics()}\n")
+            time.sleep(1.5)
+            webbrowser.open("https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/")
+            settings()
+        else:
+            print(" ")
+            settings()
     except ValueError:
-        bugReport()
-    if choice == 1:
-        time.sleep(0.8)
-        webbrowser.open("https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/")
-        print(" ")
-        settings()
-    else:
-        print(" ")
-        settings()
-
-
-def beta_tools():
-    global basic_graphics_enabled
-    print("\n== BETA TOOLS ==\nUse Beta Tools to troubleshoot issues in this version of DTD.\n1] Release Notes\n2] Report a Bug\n3] Cancel")
-    try:
-        choice = int(input("--> "))
-    except ValueError:
-        beta_tools()
-    if choice == 1:
-        print("""
-== RELEASE NOTES ==
-
-What's new?
-- Changed the wording on certain dialogs to make them easier to understand.
-- Removed the settings menu subtitles.
-- Renamed "Options" to "Settings"
-- Removed the ability to download libraries through the game due to a security risk.
-- Improved how the game handles applying basic graphics mode.
-- Rewritten the battle system from the ground up; enemy logic is now much better, and the system is more stable.
-- Removed lots of legacy code, further cleaning up the game's codebase and making it more efficient.
-- The system for applying saved settings has been rewritten from scratch, making it more reliable.
-- Fixed a bug where selecting "Examine" during a battle would return a memory location instead of stats.
-- The system for handling error messages has been localised.
-   """)
-        beta_tools()
-    elif choice == 2:
-        bugReport()
-    else:
-        settings()
+        bug_report()
 
 
 def apply_default_settings():
-    global sound_module_error, automaticallyEnabledBasicGraphics
+    global sound_module_error, auto_applied_basic_graphics
     skipAudioReset = False
     try:
         choice = int(input("\nAll settings will be reset to default, are you sure you'd like to continue?\n1] Yes\n2] No\n--> "))
@@ -4819,7 +4759,7 @@ def apply_default_settings():
                     pickle.dump([mute_audio], f, protocol=2)
             else:
                 skipAudioReset = True
-            if not automaticallyEnabledBasicGraphics:
+            if not auto_applied_basic_graphics:
                 basic_graphics_enabled = False
             else:
                 basic_graphics_enabled = True
@@ -4828,9 +4768,9 @@ def apply_default_settings():
             smallerDisplay = False
             with open('displaysettings.dat', 'wb') as f:
                 pickle.dump([smallerDisplay], f, protocol=2)
-            skipUpdateCheck = False
+            auto_updates_disabled = False
             with open('updateprefs.dat', 'wb') as f:
-                pickle.dump([skipUpdateCheck], f, protocol=2)
+                pickle.dump([auto_updates_disabled], f, protocol=2)
             if os.path.exists('themes.dat'):
                 try:
                     os.remove('themes.dat')
@@ -4847,13 +4787,13 @@ def apply_default_settings():
                      skipOverwriteConfirmation], f,
                     protocol=2)
             time.sleep(1.3)
-            if skipAudioReset is False and automaticallyEnabledBasicGraphics is False:
+            if skipAudioReset is False and auto_applied_basic_graphics is False:
                 print("All settings have been reset to default.")
                 time.sleep(0.5)
                 advanced_settings()
             else:
                 print("\nThe following settings could not be reset:")
-                if automaticallyEnabledBasicGraphics:
+                if auto_applied_basic_graphics:
                     print("-Basic Graphics mode could not be disabled.")
                 if skipAudioReset:
                     print("-Audio could not be unmuted.")
@@ -4872,46 +4812,28 @@ def refresh():
     print("\nUse this option to remove unneeded data files, logs, and other temporary files. This can help improve \nperformance, or fix certain issues. Please note that some settings may be reset to default.")
     try:
         choice = int(input("1] Refresh\n2] Cancel\n--> "))
+        if choice == 1:
+            print("Working...")
+            count = 0
+            files_to_remove = ["savedprefs.dat", "displaysettings.dat", "crash.log", "graphicsproperties.dat",
+                               "updateprefs.dat", "startup.dat"]    # List of files that aren't necessary.
+            for file in files_to_remove:
+                os.remove(file)  # Remove the item
+                count += 1  # Increment a count to display to the user.
+            if count == 1:
+                print("Refresh complete! " + str(count) + " unneeded file was erased.")
+            else:
+                print("Refresh complete! " + str(count) + " unneeded files were erased.")
+            advanced_settings()
+        else:
+            advanced_settings()
     except Exception:
         refresh()
-    if choice == 1:
-        print("Working...")
-        count = 0
-        retain = ["main.py", "DeathTrap Dungeon.exe", "savedata.dat", "savedata2.dat", "savedata3.dat", "libmpg123-0.dll", "libvorbis-0.dll", "libogg-0.dll", "changelog.txt", "sfx", ".idea", "venv", "savedprefs.dat"] #A list of files to exclude; everything else in the current working directory will be erased.
-        for item in os.listdir(os.getcwd()):
-            if item not in retain:  # If it isn't in the list for retaining
-                os.remove(item)  # Remove the item
-                count += 1
-        if count == 1:
-            print("Refresh complete! "+str(count)+" unneeded file was erased.")
-        else:
-            print("Refresh complete! "+str(count)+" unneeded files were erased.")
-        time.sleep(0.5)
-        advanced_settings()
-    else:
-        advanced_settings()
 
 
-def advanced_about():   # Advanced game info - this is mostly used for debugging purposes.
-    global internal_identifier, noPyGameModule, basic_graphics_enabled, classic_theme_enabled, skipUpdateCheck
+def advanced_about():   # Exposes advanced game info to the player - this is mostly used for debugging purposes.
     print(generate_header("GAME INFO"))
-    latest = current_version.decode('utf-8')
-    current_theme = 'Flow'
-    if classic_theme_enabled:
-        current_theme = 'Classic Theme'
-    print("GENERAL:\nDTD Version: "+str(internal_identifier))
-    print("FriendlyName: "+str(latest)+"")
-    if not noPyGameModule:
-        try:print("\nDIAGNOSTIC DATA:\nPygame Version: " + pygame.version.ver)
-        except Exception:
-            print("\nDIAGNOSTIC DATA:\nPygame Version: Unavailable")
-    else:
-        print("\nDIAGNOSTIC DATA:\nPygame Version: Pygame not installed")
-    current_os = platform.platform()
-    print("Platform: " + current_os)
-    print("Auto updates disabled: "+str(skipUpdateCheck))
-    print("Basic Graphics: "+str(basic_graphics_enabled))
-    print("Theme: "+str(current_theme))
+    print(get_diagnostics())
     time.sleep(0.5)
     advanced_settings()
 
@@ -4922,10 +4844,12 @@ def show_release_notes():
 
 
 def advanced_settings():
-    print(generate_header("ADVANCED"))
-    print("1] What's New?\n2] Refresh\n3] Reset settings to default\n4] View detailed game info\n5] Delete a save file")
+    print(generate_header("ADVANCED SETTINGS"))
+    print("1] What's New?\n2] Refresh\n3] Default Settings\n4] View detailed game info\n5] Delete a save file")
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
+    elif basic_graphics_enabled and classic_theme_enabled:
+        print("==================================")
     try:
         choice = int(input("6] Cancel\n--> "))
     except ValueError:
@@ -5089,18 +5013,12 @@ def critical_hit_settings():
 
 
 def gameplay_settings():
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        try:
-            print("\n█ GAMEPLAY: ░▒▒███████████████████")
-        except Exception:
-            print("\n== GAMEPLAY ==")
-    if basic_graphics_enabled is True or classic_theme_enabled is True:
-        print("\n== GAMEPLAY ==")
+    print(generate_header("GAMEPLAY SETTINGS"))
     print("1] Save File Options\n2] Critical Hits")
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
-    else:
-        print("===============================")
+    elif basic_graphics_enabled and classic_theme_enabled:
+        print("==================================")
     try:
         choice = int(input("3] Cancel\n--> "))
     except ValueError:
@@ -5117,16 +5035,7 @@ def gameplay_settings():
 
 
 def settings():
-    global playerName
-    global playerHealth
-    global optionsChoice
-    global playerMaxHealth
-    global healingPotion
-    global hyperPotion
-    global smokescreen
-    global devProfile
-    global savePoint
-    global skipUpdateCheck, internal_identifier, is_beta, basic_graphics_enabled
+    global auto_updates_disabled, internal_identifier, is_beta, basic_graphics_enabled
     if not basic_graphics_enabled and not classic_theme_enabled:
         print(r""" 
  █ SETTINGS: ░▒▒███████████████████
@@ -5141,47 +5050,36 @@ def settings():
     if basic_graphics_enabled is True or classic_theme_enabled is True:
         print(r"""
 Select an option:
-===============================
+==================================
 1] Sound
 2] Graphics
 3] Software Updates
 4] Gameplay
 5] Report A Bug
 6] Advanced
-===============================
+==================================
 7] Exit""")
-    if is_beta is True:
-        print("8] Beta Tools")
     try:
-        optionsChoice = int(input("--> "))
+        user_input = int(input("--> "))
+        if user_input == 1:
+            audio_settings()
+        elif user_input == 2:
+            graphics_settings()
+        elif user_input == 3:
+            software_update_settings()
+        elif user_input == 4:
+            gameplay_settings()
+        elif user_input == 5:
+            bug_report()
+        elif user_input == 7:
+            menu()
+        elif user_input == 6:
+            advanced_settings()
+        else:
+            invalid_selection_message()
+            settings()
     except ValueError:
         print("\nBad input. Only integers can be entered here!")
-        settings()
-    if optionsChoice == 1:
-        audioOptions()
-    elif optionsChoice == 2:
-        videoSettings()
-    elif optionsChoice == 3:
-        software_update_settings()
-    elif optionsChoice == 4:
-        gameplay_settings()
-    elif optionsChoice == 5:
-        if not basic_graphics_enabled and not classic_theme_enabled:
-            try:
-                print("\n█ REPORT A BUG: ░▒▒███████████████")
-            except Exception:
-                print("\n== REPORT A BUG ==")
-        if basic_graphics_enabled is True or classic_theme_enabled is True:
-            print("\n== REPORT A BUG ==")
-        bugReport()
-    elif optionsChoice == 7:
-        menu()
-    elif optionsChoice == 6:
-        advanced_settings()
-    elif optionsChoice == 8 and is_beta:
-        beta_tools()
-    else:
-        print("\nI don't understand. Try again!")
         settings()
 
 
@@ -5201,7 +5099,7 @@ def story():
     print(
         "the downfall of Medway? Can you escape, put an end to Emperor Juniper's reign of terror, and return Medway to it's former glory? Only time will tell...\n")
     time.sleep(5)
-    nameInputAsk()
+    player_name_input()
 
 
 def chapterTwo():
@@ -5246,7 +5144,7 @@ def chapterOneEscape():
 
 def choice3():
     global savePoint, player
-    global mute_audio, expertModeEnabled, debug
+    global mute_audio, expert_mode_enabled, debug
     print(" ")
     try:
         runForIt = int(
@@ -5259,7 +5157,7 @@ def choice3():
         time.sleep(0.75)
         print("\nYou are dragged to solitary confinement, and the heavy iron door is slammed shut behind you.")
         time.sleep(1)
-        if expertModeEnabled is False:
+        if expert_mode_enabled is False:
             time.sleep(1)
             player.set_save_location(1)
             askSave()
@@ -5277,7 +5175,7 @@ def choice3():
 
 
 def choice2Alternate():
-    global savePoint, expertModeEnabled
+    global savePoint, expert_mode_enabled
     print(
         "\nA nearby guard spots the commotion and comes running over with backup. There are too many guards to take on alone!")
     time.sleep(1)
@@ -5286,7 +5184,7 @@ def choice2Alternate():
     time.sleep(2)
     player.set_save_location(1)
     time.sleep(3)
-    if not expertModeEnabled:
+    if not expert_mode_enabled:
         askSave()
     else:
         choice4()
@@ -5432,12 +5330,13 @@ Found a bug? Please be sure to report this using the 'Report a Bug' feature in t
 
 
 def menu():
-    global debug, checked_for_update, basic_graphics_enabled, classic_theme_enabled, automaticallyEnabledBasicGraphics, mute_audio, is_beta
-    if not skipUpdateCheck and not checked_for_update:
-        checked_for_update = True   # This is a flag to stop the update check being called every time the menu is loaded.
-        check_network_connection(method_of_access='auto')    # Begin the update checking process
+    global debug, checked_for_update, basic_graphics_enabled, classic_theme_enabled, auto_applied_basic_graphics, mute_audio, is_beta
+    if not auto_updates_disabled and not checked_for_update:
+        checked_for_update = True   # This is a flag to stop the update check being called every time the menu is loaded. It's global so that it doesn't get reset every time the menu is called.
+        if check_network_connection():    # Begin the update checking process by first checking for internet connectivity.
+            check_for_updates(method_of_access='auto')
     if is_beta:
-        print("\n== Beta copy of DTD - for testing only ==")
+        print("\n== This is a beta copy of DTD - for testing only ==")
     if not basic_graphics_enabled and not classic_theme_enabled:
         print(r"""
  █ MAIN MENU: ░▒▒██████████████████
@@ -5458,8 +5357,8 @@ def menu():
 | [5] Quit                     | 
 +------------------------------+""")
     try:
-        newgame = int(input("--> "))
-        if newgame == 1:
+        user_input = int(input("--> "))
+        if user_input == 1:
             if mute_audio:
                 if not basic_graphics_enabled and not classic_theme_enabled:
                     try:
@@ -5510,16 +5409,16 @@ def menu():
                     pass
             time.sleep(3)
             story()
-        elif newgame == 2:
+        elif user_input == 2:
             load()
-        elif newgame == 5:
+        elif user_input == 5:
             confirm_game_exit()
-        elif newgame == 4:
+        elif user_input == 4:
             print(str(about()))
             menu()
-        elif newgame == 3:
+        elif user_input == 3:
             settings()
-        elif newgame == 7:
+        elif user_input == 7:
             debugWarp()
         else:
             print("\nPlease choose a valid option.")
@@ -5529,4 +5428,5 @@ def menu():
         menu()
 
 
-menu()  # Launch the menu which kicks off the game!
+if __name__ == '__main__':
+    menu()  # Load the menu, which starts the game.
