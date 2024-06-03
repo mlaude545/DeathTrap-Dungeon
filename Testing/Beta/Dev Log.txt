@@ -15,13 +15,17 @@ variables floating around in the code.)	[MOSTLY COMPLETE, NEEDS REFINEMENT]
 	> Very nearly complete, still have to integrate it fully.
 - Add descriptions for tracks in the Audio Player. [IN PROGRESS]
 - General bugfixes. [IN PROGRESS - REQUIRES PLAY TESTING]
-- Add a "What's New?" option to the Advanced Settings menu, which acts as the changelog. [REMOVED - EXTRA MAINTENANCE]
 - Migrate in-game chests to the new search_chest function, and remove legacy code. [MOSTLY DONE]
-- Migrate the old self-hosted bug tracking system to Bugzilla. [CANCELLED - USE GITHUB ISSUE TRACKING INSTEAD]
 - Re-implement release notes option when a new version is available [NOT STARTED]
+
 
 PROPOSED FEATURES THAT WERE REMOVED:
 This is a list of features that were planned to be in the final release of DTD v3.0.0, but have been removed.
+
+- Migrate the old self-hosted bug tracking system to Bugzilla. [CANCELLED - USE GITHUB ISSUE TRACKING INSTEAD]
+- Add a "What's New?" option to the Advanced Settings menu, which acts as the changelog. [REMOVED - NOT NECESSARY]
+- Add a Bug Report feature - if the game crashes, send reports (containing diagnostic data) via email or telegram to myself. [CANCELLED - the system worked but added more complexity, plus the Telegram API key used would be publicly available thanks to the open source license.)
+
 
 COMPLETED FEATURES / PATCHES:
 Please note that this list isn't comprehensive; it's just additions effective from the writing of this list (2/2/24) - a full list of implementations can be found in the changelog.
@@ -31,7 +35,7 @@ Please note that this list isn't comprehensive; it's just additions effective fr
 - Tied the legacy SavePoint variable to a Player attribute.
 - Categorised the inventory into a dictionary, which is a Player attribute.
 - Items are now in a class along with their artwork and descriptions, which hugely tidies up the code.
-- Battles are now almost completely migrated over to the new system.
+- Battles are now completely migrated over to the new system.
 - Prompt is now shown to convert an incompatible save file.
 - Depreciated the following legacy battle logic functions:
 	> MusicBattle, JuniperMusic, encounterGuard, encounterHighRank, encounterJuniper
