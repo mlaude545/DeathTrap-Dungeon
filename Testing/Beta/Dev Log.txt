@@ -25,6 +25,7 @@ This is a list of features that were planned to be in the final release of DTD v
 - Migrate the old self-hosted bug tracking system to Bugzilla. [CANCELLED - USE GITHUB ISSUE TRACKING INSTEAD]
 - Add a "What's New?" option to the Advanced Settings menu, which acts as the changelog. [REMOVED - NOT NECESSARY]
 - Add a Bug Report feature - if the game crashes, send reports (containing diagnostic data) via email or telegram to myself. [CANCELLED - the system worked but added more complexity, plus the Telegram API key used would be publicly available thanks to the open source license.)
+- Add an autosave feature (Was implemented in early betas but was removed when porting the save system over to the new codebase. Might get added back in a future update.)
 
 
 COMPLETED FEATURES / PATCHES:
