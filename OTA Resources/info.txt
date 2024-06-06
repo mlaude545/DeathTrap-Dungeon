@@ -1,3 +1,15 @@
 This folder contains resources to be accesed when the game is performing an OTA update, such as binaries and
 other files needed during the upgrade process. It is not designed to be used standalone; for the latest 
 version of DTD, navigate up a directory and use the 'Latest' folder.
+
+
+If you care about all the technical stuff, here's what each of the files in this directory do:
+
+- DTD.exe is the game as a standalone executable for Windows. This differs from the installer as it
+ doesn't come bundled with any files that the game relies on (audio files, preferences, etc...) It's
+ used when doing in-place upgrades on Windows - the file gets downloaded by the updater and overwrites
+ the existing executable.
+
+- latest_stable_ver is simply a text file containing the version number of (you guessed it) the current
+ stable version of the game. When the game checks for updates, this file gets downloaded, and the version
+ number in the file is compared to the version number of the game.
