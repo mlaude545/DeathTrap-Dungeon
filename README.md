@@ -162,7 +162,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the GPL v3 License. See `LICENSE.txt` for more information.
+Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -171,7 +171,7 @@ Distributed under the GPL v3 License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - reubenparfrey@gmail.com
+Reuben Parfrey - reubenparfrey@gmail.com
 
 Project Link: [https://github.com/mlaude545/DeathTrap-Dungeon](https://github.com/mlaude545/DeathTrap-Dungeon)
 
