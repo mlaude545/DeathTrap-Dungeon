@@ -23,7 +23,7 @@
     <a href="https://github.com/mlaude545/DeathTrap-Dungeon"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/mlaude545/DeathTrap-Dungeon/Testing/beta/">Test the Latest Beta</a>
+    <a href="https://github.com/mlaude545/DeathTrap-Dungeon/Testing/Beta/">Test the Latest Beta</a>
     ·
     <a href="https://github.com/mlaude545/DeathTrap-Dungeon/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
@@ -162,7 +162,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the GPL v3 License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
