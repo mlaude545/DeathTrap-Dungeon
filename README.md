@@ -74,14 +74,7 @@ Welcome to the DeathTrap Dungeon repo on GitHub! DeathTrap Dungeon is a text adv
 
 ### Built With
 
-* [![Next][Next.js]][Next-url]
-* [![React][React.js]][React-url]
-* [![Vue][Vue.js]][Vue-url]
-* [![Angular][Angular.io]][Angular-url]
-* [![Svelte][Svelte.dev]][Svelte-url]
-* [![Laravel][Laravel.com]][Laravel-url]
-* [![Bootstrap][Bootstrap.com]][Bootstrap-url]
-* [![JQuery][JQuery.com]][JQuery-url]
+* [![Python][Python.js]][Python-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -90,31 +83,33 @@ Welcome to the DeathTrap Dungeon repo on GitHub! DeathTrap Dungeon is a text adv
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+To get DeathTrap Dungeon up and running, follow these simple steps:
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
+DeathTrap Dungeon uses mostly Python builtin modules and can work without any extra dependencies having to be installed. However, in order to unlock extra functionality, the Pygame module can be installed.
+* Pygame
   ```sh
-  npm install npm@latest -g
+  pip3 install pygame
   ```
 
 ### Installation
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
+1. Clone the repo
    ```sh
    git clone https://github.com/github_username/repo_name.git
    ```
-3. Install NPM packages
+2. (Optional) install Pygame
    ```sh
-   npm install
+   pip3 install pygame
    ```
-4. Enter your API in `config.js`
+3. Make the game executable
+   ```sh
+   chmod u+x main.py
+   ```
+5. Run the game
    ```js
-   const API_KEY = 'ENTER YOUR API';
+   ./main.py
    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
