@@ -12,13 +12,13 @@
 <br />
 <div align="center">
   <a href="https://github.com/mlaude545/DeathTrap-Dungeon">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="Images/logo.ico" alt="Logo" width="80" height="80">
   </a>
 
 <h3 align="center">DeathTrap Dungeon</h3>
 
   <p align="center">
-    project_description
+    An action-packed text adventure game built in Python.
     <br />
     <a href="https://github.com/mlaude545/DeathTrap-Dungeon"><strong>Explore the docs »</strong></a>
     <br />
