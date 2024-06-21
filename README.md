@@ -185,7 +185,7 @@ Project Link: [https://github.com/mlaude545/DeathTrap-Dungeon](https://github.co
 ## Acknowledgments
 
 * Othnieldrew for providing this awesome template!! Check it out here: https://github.com/othneildrew/Best-README-Template
-* Charly Sly for the huge amount of help during development - https://github.com/magenta/
+* Charly Sly for the huge amount of help during development - https://github.com/magenta808/
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
