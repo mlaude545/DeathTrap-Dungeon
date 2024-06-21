@@ -89,7 +89,7 @@ To get DeathTrap Dungeon up and running, follow these simple steps:
 
 ### Prerequisites
 
-DeathTrap Dungeon uses mostly Python builtin modules and can work without any extra dependencies having to be installed. However, in order to unlock extra functionality, the Pygame module can be installed.
+DeathTrap Dungeon uses mostly Python builtin modules and works without any extra dependencies having to be installed. However, in order to unlock extra functionality, you can install the Pygame module.
 * Pygame
   ```sh
   pip3 install pygame
@@ -132,10 +132,10 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-    - [ ] Nested Feature
+- [ ] Finish DTD v3.0.0 development.
+- [ ] Release DTD v3.0.0.
+- [ ] Provide ongoing feature updates and patches.
+    - [ ] Watch this space for updates once DTD v3.0.0 has been released!
 
 See the [open issues](https://github.com/mlaude545/DeathTrap-Dungeon/issues) for a full list of proposed features (and known issues).
 
@@ -184,7 +184,7 @@ Project Link: [https://github.com/mlaude545/DeathTrap-Dungeon](https://github.co
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* []()
+* []Othnieldrew for providing this awesome template!!()
 * []()
 * []()
 
