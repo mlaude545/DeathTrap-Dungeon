@@ -1,29 +1,33 @@
 #!/usr/bin/python3
 
+
 # DEATHTRAP DUNGEON by Reuben Parfrey 2019 - 2024
 
-# This game is open source software and is released under the GPL v3.0. As such, you can freely modify and
-# redistribute the source code, provided you do not release closed source variants. This software comes with NO
-# WARRANTY. A full copy of the GPL v3.0 can be found in the 'copying' file provided with this game.
+# This game is open source software and is released under the MIT Licence. As such, you can freely modify and
+# redistribute the source code. This software comes with NO WARRANTY. A full copy of the MIT Licence can be
+# found in the 'copying' file provided with this game.
 
 # Thanks to everybody who helped me during the development of this game; I genuinely never thought it would
 # receive the support that is has, and I am eternally grateful. If you have any suggestions for improvements to
 # this game, or want to report a bug, please use the 'Report a Bug' option in-game in the Settings menu.
 
+
 # Import the needed libraries
 import random, pickle, os, webbrowser, platform, sys, time, socket
+import shutil
 from urllib.request import urlretrieve
 from pathlib import Path
 from datetime import datetime
 
 # Initialise global variables
-current_version = b"3.0.0"  # Version of this release of DTD, used when checking for updates.
+current_version = "3.0.0"  # Version of this release of DTD, used when checking for updates.
 internal_identifier = "DTD v3.0.0 BETA"   # A more friendly version identifier, which is shown to the user.
 checked_for_update = False  # This changes to True after the game has checked for updates, provided auto updates are enabled.
 is_beta = True   # Set this to True if this is a beta copy of DTD, else it should be False
+refreshed_stable_version = False    # This is used when the user initiates an update check. It ensures that the game refreshes to have the latest stable version available from the web.
 
 # More various global variables. Please note that many of these have been depreciated or made redundant, so the aim is to
-# phase many of these out in future releases.
+# phase many of these out gradually across future releases.
 savePointCopy = 0
 gotstring = 0
 debug = 0
@@ -871,6 +875,22 @@ def generate_defensive_item_list(player_max_health, damage):
     return defensive_items
 
 
+def data_format_assistant():
+    current_dir = os.getcwd()
+    known_config_files = ['updateprefs.dat', 'graphics_settings.dat', 'gameplay_settings.dat']
+    known_data_files = ['savedata.dat', 'savedata2.dat', 'savedata3.dat']
+    if not os.path.exists(current_dir+'/config'):
+        os.mkdir(current_dir+'/config')
+    if not os.path.exists(current_dir+'/data'):
+        os.mkdir(current_dir+'/data')
+    for file in known_data_files:
+        if os.path.exists(current_dir+file):
+            os.rename(current_dir+file, current_dir+'/data/'+file)
+    for file in known_config_files:
+        if os.path.exists(current_dir+file):
+            os.rename(current_dir+file, current_dir+'/data/'+file)
+
+
 def download_latest_source(download_path, url):
     print("Working...")
     try:
@@ -933,30 +953,73 @@ def ask_download_update(method_of_access, contents):
             download_path = str(Path.home() / "Downloads/DTD.py")
             url = 'https://raw.githubusercontent.com/mlaude545/DeathTrap-Dungeon/main/Latest/DTD.py'
             confirm_source_code(download_path, url)
-    elif choice == 2:
+    elif choice == 2 and method_of_access == 'auto':
         menu()
+    elif choice == 2 and method_of_access == 'manual':
+        software_update_settings()
     elif choice == 3 and method_of_access == 'auto':
         print("\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by selecting 'Settings' on the main menu, then selecting 'Software Updates'.")
         auto_updates_disabled = True
         with open('updateprefs.dat', 'wb') as f:
             pickle.dump([auto_updates_disabled], f, protocol=2)
         menu()
+    else:
+        invalid_selection_message()
+        ask_download_update(method_of_access, contents)
+
+
+def get_latest_stable_ver(filename):    # This function pulls the latest version number of DTD from GitHub, and stores it to a file.
+    url = 'https://raw.githubusercontent.com/mlaude545/DeathTrap-Dungeon/main/OTA%20Resources/latest_stable_ver.txt'
+    req = urllib.request.Request(url)
+    response = urllib.request.urlopen(req)
+    contents = response.read()  # Store the HTML contents of the site to a variable.
+    contents = contents.decode('utf-8')
+    with open(filename, 'w') as file:
+        file.write(contents)
+        file.close()
+
+
+def check_stable_ver_file(filename):
+    modified_date = os.path.getmtime(filename)  # Get the date and time of when the file was last modified.
+    modified_date = datetime.fromtimestamp(
+        modified_date)  # Convert it into a human-readable date and time from the timestamp.
+    modified_date = datetime.date(
+        modified_date)  # Extract just the date from the timestamp, seeing as the time is largely irrelevant.
+    current_date = datetime.now()  # Get the current date
+    current_date = datetime.date(current_date)  # Again, strip the time from the date, as this is irrelevant.
+    delta = current_date - modified_date
+    days_elapsed = delta.days  # Get the number of days elapsed from today's date, to when the last stable version check was performed.
+    return days_elapsed
 
 
 def check_for_updates(method_of_access):
-    global current_version  # This variable is the number of this version of DTD.
-    ssl._create_default_https_context = ssl._create_unverified_context
-    url = "http://www.dtdlatestversion.xp3.biz"     # This site hosts the latest DTD version number.
-    hdr = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'}
-    req = urllib.request.Request(url, headers=hdr)
-    response = urllib.request.urlopen(req)
-    contents = response.read()  # Store the HTML contents of the site to a variable.
-    contents = contents.split(b'<p>')[1].lstrip().split(b'</p>')[0]     # Strip away the unneeded HTML, leaving just the version number.
-    if contents > current_version:  # If the retrieved version number is higher than the current version number, then an update is available.
-        ask_download_update(method_of_access, contents)
+    global current_version, refreshed_stable_version
+    current_dir = os.getcwd()   # Get the current working directory
+    path_to_data = current_dir + '/temp'    # Directory that contains the latest stable version of DTD.
+    filename = path_to_data + '/latest_stable_ver.txt'
+    if not os.path.exists(path_to_data):    # Check if the 'temp' directory exists - this will contain a file that holds a plaintext version number of the latest stable release of DTD.
+        os.mkdir(path_to_data)  # Make that directory if it does not exist.
+    if not os.path.isfile(filename) and not refreshed_stable_version:    # Check if a file exists in the temp directory that contains the latest stable version of DTD.
+        get_latest_stable_ver(filename)  # Get the latest stable version from GitHub if the file doesn't exist.
+        refreshed_stable_version = True
+        check_for_updates(method_of_access)
+    days_elapsed = check_stable_ver_file(filename)
+    if days_elapsed > 3 or method_of_access == "manual" and not refreshed_stable_version:
+        get_latest_stable_ver(filename)  # Connect to the internet and get the latest stable version of DTD and save it to a file. This happens every few days automatically, or whenever the user manually initiates an update check.
+        refreshed_stable_version = True     # Set the refreshed_stable_version flag, to ensure the game doesn't get stuck in an endless loop of refreshing.
+        check_for_updates(method_of_access)
+    try:
+        with open(filename) as f:
+            latest_stable_version = f.read()
+            latest_stable_version = latest_stable_version.strip()  # Remove newline from end of file
+    except Exception:
+        pass
+    if latest_stable_version > current_version:
+        ask_download_update(method_of_access, latest_stable_version)
     else:
         if method_of_access == 'manual':
             print("\nYou're up to date! There are no new versions of DeathTrap Dungeon available at this time.")
+            software_update_settings()
 
 
 def check_network_connection():  # Checks for an internet connection. If none exists, the update check is skipped.
@@ -4184,6 +4247,11 @@ def debugWarp():
     elif funcWarp == "crash":
         handle_error(description="Sample description generated by debug_warp", e="Sample traceback")
         debugWarp()
+    elif funcWarp == "data":
+        print("\nManually running data format assistant...")
+        data_format_assistant()
+        print("Done!")
+        debugWarp()
     else:
         print("'" + funcWarp + "' is not a recognised function or warp location. Check spelling and try again.\n")
         debugWarp()
@@ -4512,7 +4580,7 @@ def auto_update_settings():
     global auto_updates_disabled
     user_feedback = "disabled."
     if not auto_updates_disabled or auto_updates_disabled is [False]:
-        print("\nAutomatic Updates are enabled. With this on, DeathTrap Dungeon will periodically check for updates\nwhenever it is launched, and notify you when a new version is out. Would you like to disable this?")
+        print("\nAutomatic Updates are enabled. With this on, DeathTrap Dungeon will periodically check for updates\nwhen it is launched, and notify you when a new version is out. Would you like to disable this?")
     else:
         print("\nAutomatic Updates are disabled. Would you like to enable them?")
     try:
@@ -4538,7 +4606,7 @@ def auto_update_settings():
 
 
 def software_update_settings():
-    global auto_updates_disabled
+    global auto_updates_disabled, refreshed_stable_version
     auto_update_toggle = "Disable "
     if auto_updates_disabled:
         auto_update_toggle = "Enable "
@@ -4554,6 +4622,7 @@ def software_update_settings():
         software_update_settings()
     if choice == 1:
         print("Checking for updates...")
+        refreshed_stable_version = False    # This gets set to True when the game starts, so reset it to False so the game is getting the latest copy of the file.
         if check_network_connection():          # Returns True if there is an active network connection.
             check_for_updates(method_of_access='manual')    # The variable 'method_of_access' is set to 'manual', so
         else:                                               # the game knows that the user initiated the update check.
@@ -4729,16 +4798,33 @@ def graphics_settings():
         graphics_settings()
 
 
+def launch_bug_report(diagnostic_data, description, e):
+    bug_report_info = diagnostic_data
+    if description and e is not None:
+        bug_report_info = bug_report_info + f"\n\nCrash Details:\n{description}\n{e}"
+    print(f"\nPlease copy and paste the following into your bug report: \n\n{bug_report_info}\n")
+    try:
+        choice = int(input("\nThe above information contains important details (such as which version of DTD you are using), which\nmassively helps when fixing bugs. When you are ready to continue, select the relevant option below.\n\n1] I have copied this info, take me to the bug report page\n2] Cancel\n--> "))
+        if choice == 1:
+            webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/')
+            settings()
+        elif choice == 2:
+            settings()
+        else:
+            invalid_selection_message()
+            settings()
+    except ValueError:
+        invalid_selection_message()
+        launch_bug_report(diagnostic_data, description, e)
+
+
 def bug_report():
     print(generate_header('REPORT A BUG'))
-    print("Found a bug or have any suggestions? Select 'Report a Bug Online' to let the developers know! Please note that\nthis will open your web browser.")
+    print("Found a bug? Select 'Report a Bug Online' to let the developers know!")
     try:
         choice = int(input("1] Report a Bug Online\n2] Cancel\n--> "))
         if choice == 1:
-            print(f"\nNow opening the bug reporting page in your web browser. Please include the following information in the bug report:\n{get_diagnostics()}\n")
-            time.sleep(1.5)
-            webbrowser.open("https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/")
-            settings()
+            launch_bug_report(diagnostic_data=str(get_diagnostics()), description=None, e=None)
         else:
             print(" ")
             settings()
