@@ -64,7 +64,9 @@
 <!-- ABOUT THE PROJECT -->
 ## About DeathTrap Dungeon
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
+<a href="https://github.com/mlaude545/DeathTrap-Dungeon">
+    <img src="Images/DTD_demo.png" alt="Screenshot" width="80" height="80">
+</a>
 
 Welcome to the DeathTrap Dungeon repo on GitHub! DeathTrap Dungeon is a text adventure game that incorporates elements of puzzle solving, exploration, battles, and strategy.
 
