@@ -81,3 +81,5 @@ Key- [x] = A patch for this bug has been implemented.
 - During the first battle in the game, using the 'Examine' option shows 'No defensive items held'. [x]
 - When running the data format daemon, the game places all files into the 'config' directory, instead of also populating the 'data' directory. [x]
 - Using the 'Examine' option in battles shows the defensive items list incorrectly - doesn't remove the 'No defensive items' message from the start of the list. []
+- When Pygame is not installed, the game ignores this and allows audio to be unmuted when applying default settings. [x]
+- Small visual bug when Basic Graphics is enabled - the warning text shown when the game is started shows that classic theme is also enabled, which is not always the case and is unneccesary. []
