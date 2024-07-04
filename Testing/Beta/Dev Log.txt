@@ -1,13 +1,13 @@
-DTD 3 DEV LOG:
-This is a list of the main things that I want to do with the release of DTD 3.0.0
+DTD v3.0.0 DEV LOG:
 
-Please note that DTD v3.0.0 has reached it's feature freeze, so no more game-changing features are planned
-for this particular release; it's now mostly just bugfixes and general cleanup.
+This file is intended to help with the development of DTD v3.0.0. It contains the following:
+- TO DO = A list of things that are currently in the works. The comments in [square brackets] are the current state of the implementation.
+- CANCELLED FEATURES = A list of features that were planned to be in the final release, but were removed. This list is subject to change and the features could get re-added in future releases.
+- COMPLETED FEATURES / PATCHES = A non-comprehensive list of completed features - a full list of implementations can be found in the final version's changelog.
+- KNOWN BUGS = This list is specific to the current beta; a full list of bugfixes for DTD v3.0.0 can be found in the changelog.
 
 
 TO DO:
-Below you'll find a list of things that are currently in the works. The comments in [square brackets] are the current state of the implementation.
-
 - Clean up legacy variables, rename them to better follow Python best practice.	[IN PROGRESS - WILL BE A MAJOR FOCUS IN THE NEXT FEATURE UPDATE]
 - Add comments to the source code to make it easier to maintain. [IN PROGRESS]
 - Integrate items into some sort of class system (objects with attributes rather than a bunch of random 
@@ -22,8 +22,6 @@ variables floating around in the code.)	[MOSTLY COMPLETE, NEEDS REFINEMENT]
 
 
 PROPOSED FEATURES THAT WERE REMOVED:
-This is a list of features that were planned to be in the final release of DTD v3.0.0, but have been removed. Please note that this list is subject to change and these features could get re-added in future releases.
-
 - Migrate the old self-hosted bug tracking system to Bugzilla. [CANCELLED - USE GITHUB ISSUE TRACKING INSTEAD]
 - Add a "What's New?" option to the Advanced Settings menu, which acts as the changelog. [REMOVED - NOT NECESSARY]
 - Add a Bug Report feature - if the game crashes, send reports (containing diagnostic data) via email or telegram to myself. [CANCELLED - the system worked but added more complexity, plus the Telegram API key used would be publicly available thanks to the open source license.)
@@ -31,8 +29,6 @@ This is a list of features that were planned to be in the final release of DTD v
 
 
 COMPLETED FEATURES / PATCHES:
-Please note that this list isn't comprehensive; it's just additions effective from the writing of this list (2/2/24) - a full list of implementations can be found in the changelog.
-
 - Migrated the save/load menus over to the new save system.
 - Changed save format to better reflect the game's new codebase.
 - Tied the legacy SavePoint variable to a Player attribute.
@@ -62,10 +58,9 @@ attribute of the Player class.
 
 
 KNOWN BUGS:
-(This list is specific to the current beta; a full list of bugfixes for DTD v3.0.0 can be found in the changelog.)
 
 Key- [x] = A patch for this bug has been implemented.
-   - [] = I am aware of the bug, but have not yet patched it.
+   - [] = I am aware of the bug, but haven't gotten around to patching it.
 
 - 'Never ask for overwrite confirmation' option currently doesn't work. []
 - Some formatting bugs during battles. []
@@ -80,6 +75,7 @@ Key- [x] = A patch for this bug has been implemented.
 - The message shown when the user manually checks for updates when there are no new versions available is duplicated. [x]
 - During the first battle in the game, using the 'Examine' option shows 'No defensive items held'. [x]
 - When running the data format daemon, the game places all files into the 'config' directory, instead of also populating the 'data' directory. [x]
-- Using the 'Examine' option in battles shows the defensive items list incorrectly - doesn't remove the 'No defensive items' message from the start of the list. []
+- Using the 'Examine' option in battles shows the defensive items list incorrectly - doesn't remove the 'No defensive items' message from the start of the list. [x]
 - When Pygame is not installed, the game ignores this and allows audio to be unmuted when applying default settings. [x]
 - Small visual bug when Basic Graphics is enabled - the warning text shown when the game is started shows that classic theme is also enabled, which is not always the case and is unneccesary. []
+- When viewing stats after a battle, the 'Held items' list is empty even if you are holding items. []
