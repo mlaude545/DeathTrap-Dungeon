@@ -24,7 +24,7 @@ current_version = "3.0.0"  # Version of this release of DTD, used when checking 
 internal_identifier = "DTD v3.0.0 BETA"   # A more friendly version identifier, which is shown to the user.
 checked_for_update = False  # This changes to True after the game has checked for updates, provided auto updates are enabled.
 is_beta = True   # Set this to True if this is a beta copy of DTD, else it should be False
-refreshed_stable_version = False    # This is used when the user initiates an update check. It ensures that the game refreshes to have the latest stable version available from the web.
+refreshed_latest_release_ver = False    # This is used when the user initiates an update check. It ensures that the game refreshes to have the latest stable version available from the web.
 
 # More various global variables. Please note that many of these have been depreciated or made redundant, so the aim is to
 # phase many of these out gradually across future releases.
@@ -121,7 +121,7 @@ if currentOS == "Windows":
         pass
 
 try:
-    with open('graphics_configuration.dat', 'rb') as f:         # Load graphics settings, and then apply them.
+    with open('config/graphics_configuration.dat', 'rb') as f:         # Load graphics settings, and then apply them.
         basic_graphics_enabled, classic_theme_enabled = pickle.load(f)
 except FileNotFoundError:
     basic_graphics_enabled = False
@@ -190,8 +190,7 @@ except Exception:   # If Pygame can't be imported, show a warning and mute audio
     no_pygame = True    # Raise the no_pygame flag, so the game knows not to let the player unmute audio.
     mute_audio = True
     print(generate_header("MISSING DEPENDENCY"))
-    print("The module 'Pygame' could not be imported. This library handles all of the game's audio, so audio will be "
-          "muted in order to keep the game running. For\nhelp fixing this error, please visit: "
+    print("The 'Pygame' module is not installed, so the game will run without sound.\nFor more help, visit: "
           "https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
 
 # Try to import the necessary libraries for checking for updates.
@@ -202,7 +201,7 @@ except Exception:
     auto_updates_disabled = True
 
 try:    # Open the file containing gameplay settings, and apply them.
-    with open('gameplay_settings.dat', 'rb') as f:
+    with open('config/gameplay_settings.dat', 'rb') as f:
         disable_critical, player_only_critical, enemy_only_critical, disableOverwrite, skipOverwriteConfirmation = pickle.load(
             f)
 except Exception:
@@ -474,16 +473,16 @@ class Player:
 
     def update_defensive_items(self, item_name):
         self.defensive_items.append(str(item_name))
+        if self.defensive_items[0] == '* No Defensive Items *' and len(self.defensive_items) > 1:
+            self.defensive_items.pop(0)   # Remove the 'no defensive items' warning when the player gains an item.
         return
 
 
-try:
-    with open('updateprefs.dat', 'rb') as f:
+try:    # Open the file that contains the user's update settings.
+    with open('config/update_configuration.dat', 'rb') as f:
         auto_updates_disabled = pickle.load(f)
 except Exception:
-    auto_updates_disabled = False
-    with open('updateprefs.dat', 'wb') as f:
-        pickle.dump([auto_updates_disabled], f, protocol=2)
+    auto_updates_disabled = False   # If the file can't be accessed, enable auto updates as a fallback.
 
 
 class BattleLogic:  # This class contains the various logic functions used within battles.
@@ -802,33 +801,30 @@ def invalid_selection_message():
 
 def get_diagnostics():  # This function gathers diagnostic data. This data is shown to the user, and can be included in bug reports.
     global current_version, basic_graphics_enabled, classic_theme_enabled, auto_updates_disabled, internal_identifier, sound_module_error, sound_directory_error
-    latest = current_version.decode('utf-8')
     if classic_theme_enabled:
         active_theme = 'Classic Theme'
     else:
         active_theme = 'Flow'
-    if not sound_module_error:
+    if not sound_module_error and not no_pygame:
         pygame_ver = pygame.version.ver
     else:
         pygame_ver = "(Pygame version data not available - probably not installed.)"
     current_platform = sys.platform
-    general_data = [internal_identifier, latest]
+    general_data = [internal_identifier, current_version]
     diagnostic_data = [current_platform, pygame_ver, basic_graphics_enabled, active_theme, auto_updates_disabled]
     return f"GENERAL:\nDTD Version: {general_data[0]}\nFriendlyName: {general_data[1]}\n\nDIAGNOSTIC:\nPlatform: {diagnostic_data[0]}\nPygame Version: {diagnostic_data[1]}\nBasic Graphics Status: {diagnostic_data[2]}\nActive Theme: {diagnostic_data[3]}\nAuto Updates Disabled? {diagnostic_data[4]}"
 
 
 def handle_error(description, e):  # This function displays error messages, taking basic and advanced error info as parameters to display to the user.
-    print(generate_header("CRASH HANDLER"))
-    print("Sorry for the inconvenience, but an unexpected error has occurred.\n\nGENERAL DETAILS: "+str(description)+"\nADVANCED ERROR INFO: "+str(e))
-    print("\nFor help fixing this, choose 'Get Help Online' from the menu below and use the error details above to find help. Alternatively, \nyou can submit a bug report to help the developers get this issue fixed.")
+    print(generate_header("OOPS! AN ERROR OCCURRED"))
+    print("Looks like an error occurred. Here's what we know:\n\nDETAILS: "+str(description)+"\nTECHNICAL: "+str(e))
+    print("\nNeed some help? Choose an option below. If this issue seems to be a bug, please report it..")
     try:
-        choice = int(input("1] Get Help Online\n2] Send Error Report\n3] Cancel\n--> "))
+        choice = int(input("1] Get Help Online\n2] Report a Bug\n3] Cancel\n--> "))
         if choice == 1:
             webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/help/')
         elif choice == 2:
-            print(f"\nPlease include the following information in the bug report:\n{get_diagnostics()}\n")
-            time.sleep(1.6)
-            webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/')
+            launch_bug_report(get_diagnostics(), description, e)
         elif choice == 3:
             pass
         else:
@@ -839,7 +835,7 @@ def handle_error(description, e):  # This function displays error messages, taki
 
 
 def generate_defensive_item_list(player_max_health, damage):
-    defensive_items = ['[No defensive items]']                     # This function is used when converting save files from
+    defensive_items = ['[No defensive items]']         # This function is used when converting save files from
     if player_max_health == 20 and damage == 5:        # older formats. In this version of the game, the player's
         defensive_items = ['shard of glass']           # defensive items (dropped by enemies) are simply saved as an
     elif player_max_health == 20 and damage == 7:      # array. However, older versions of the game didn't do this. This
@@ -875,8 +871,8 @@ def generate_defensive_item_list(player_max_health, damage):
     return defensive_items
 
 
-def data_format_assistant():
-    current_dir = os.getcwd()
+def data_format_assistant():    # In previous versions of DTD, data and config files were stored in the current working directory, which was
+    current_dir = os.getcwd()   # extremely messy. This function copies these files (if they exist) into directories.
     known_config_files = ['updateprefs.dat', 'graphics_settings.dat', 'gameplay_settings.dat']
     known_data_files = ['savedata.dat', 'savedata2.dat', 'savedata3.dat']
     if not os.path.exists(current_dir+'/config'):
@@ -884,11 +880,11 @@ def data_format_assistant():
     if not os.path.exists(current_dir+'/data'):
         os.mkdir(current_dir+'/data')
     for file in known_data_files:
-        if os.path.exists(current_dir+file):
-            os.rename(current_dir+file, current_dir+'/data/'+file)
+        if os.path.exists(current_dir+'/'+file):
+            shutil.move(current_dir+'/'+file, current_dir+'/data/'+file)
     for file in known_config_files:
-        if os.path.exists(current_dir+file):
-            os.rename(current_dir+file, current_dir+'/data/'+file)
+        if os.path.exists(current_dir+'/'+file):
+            shutil.move(current_dir+'/'+file, current_dir+'/config/'+file)
 
 
 def download_latest_source(download_path, url):
@@ -931,44 +927,50 @@ def confirm_source_code(download_path, url):
         print("\nPlease choose a valid option.")
         confirm_source_code(download_path, url)
 
+
 def ask_download_update(method_of_access, contents):
     new_version_number = str(contents)
     new_version_number = new_version_number.replace("b", "")
     new_version_number = new_version_number.replace("'", "")
-    options = str("1] Download update\n2] Cancel")
+    if method_of_access == 'manual':                    # Alter the wording of the options presented to the user slightly, depending
+        options = str("1] Download update\n2] Cancel")  # on how the update check was initiated.
+    else:
+        options = str("1] Download Update\n2] Skip For Now\n3] Skip and Don't Ask Again")
     print(f"\nA new version of DeathTrap Dungeon (v{new_version_number}) is available!")
-    if method_of_access == 'auto':
-        options += "\n3] Don't ask again"
     print(options)
     try:
         choice = int(input("--> "))
+        if choice == 1:
+            user_platform = platform.system()
+            if user_platform == "Windows":
+                os.startfile("updater.exe")
+                sys.exit(0)
+            else:
+                download_path = str(Path.home() / "Downloads/DTD.py")
+                url = 'https://raw.githubusercontent.com/mlaude545/DeathTrap-Dungeon/main/Latest/DTD.py'
+                confirm_source_code(download_path, url)
+        elif choice == 2 and method_of_access == 'auto':
+            menu()
+        elif choice == 2 and method_of_access == 'manual':
+            software_update_settings()
+        elif choice == 3 and method_of_access == 'auto':
+            print(
+                "\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by selecting 'Settings' on the main menu, then selecting 'Software Updates'.")
+            auto_updates_disabled = True
+            with open('updateprefs.dat', 'wb') as f:
+                pickle.dump([auto_updates_disabled], f, protocol=2)
+            menu()
+        else:
+            invalid_selection_message()
+            ask_download_update(method_of_access, contents)
     except ValueError:
         ask_download_update(method_of_access, contents)
-    if choice == 1:
-        user_platform = platform.system()
-        if user_platform == "Windows":
-            os.startfile("updater.exe")
-            sys.exit(0)
-        else:
-            download_path = str(Path.home() / "Downloads/DTD.py")
-            url = 'https://raw.githubusercontent.com/mlaude545/DeathTrap-Dungeon/main/Latest/DTD.py'
-            confirm_source_code(download_path, url)
-    elif choice == 2 and method_of_access == 'auto':
-        menu()
-    elif choice == 2 and method_of_access == 'manual':
-        software_update_settings()
-    elif choice == 3 and method_of_access == 'auto':
-        print("\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by selecting 'Settings' on the main menu, then selecting 'Software Updates'.")
-        auto_updates_disabled = True
-        with open('updateprefs.dat', 'wb') as f:
-            pickle.dump([auto_updates_disabled], f, protocol=2)
-        menu()
-    else:
-        invalid_selection_message()
-        ask_download_update(method_of_access, contents)
 
 
-def get_latest_stable_ver(filename):    # This function pulls the latest version number of DTD from GitHub, and stores it to a file.
+
+# This function pulls the latest version number of DTD from GitHub, and stores it to a file. The game then uses this
+# version number when checking for updates: if latest_ver_available > this_game's_ver then a new version is out.
+def get_latest_release_ver(filename):
     url = 'https://raw.githubusercontent.com/mlaude545/DeathTrap-Dungeon/main/OTA%20Resources/latest_stable_ver.txt'
     req = urllib.request.Request(url)
     response = urllib.request.urlopen(req)
@@ -979,7 +981,7 @@ def get_latest_stable_ver(filename):    # This function pulls the latest version
         file.close()
 
 
-def check_stable_ver_file(filename):
+def check_latest_ver_cached(filename):
     modified_date = os.path.getmtime(filename)  # Get the date and time of when the file was last modified.
     modified_date = datetime.fromtimestamp(
         modified_date)  # Convert it into a human-readable date and time from the timestamp.
@@ -993,20 +995,20 @@ def check_stable_ver_file(filename):
 
 
 def check_for_updates(method_of_access):
-    global current_version, refreshed_stable_version
+    global current_version, refreshed_latest_release_ver
     current_dir = os.getcwd()   # Get the current working directory
     path_to_data = current_dir + '/temp'    # Directory that contains the latest stable version of DTD.
     filename = path_to_data + '/latest_stable_ver.txt'
     if not os.path.exists(path_to_data):    # Check if the 'temp' directory exists - this will contain a file that holds a plaintext version number of the latest stable release of DTD.
         os.mkdir(path_to_data)  # Make that directory if it does not exist.
-    if not os.path.isfile(filename) and not refreshed_stable_version:    # Check if a file exists in the temp directory that contains the latest stable version of DTD.
-        get_latest_stable_ver(filename)  # Get the latest stable version from GitHub if the file doesn't exist.
-        refreshed_stable_version = True
+    if not os.path.isfile(filename) and not refreshed_latest_release_ver:    # Check if a file exists in the temp directory that contains the latest stable version of DTD.
+        get_latest_release_ver(filename)  # Get the latest stable version from GitHub if the file doesn't exist.
+        refreshed_latest_release_ver = True
         check_for_updates(method_of_access)
-    days_elapsed = check_stable_ver_file(filename)
-    if days_elapsed > 3 or method_of_access == "manual" and not refreshed_stable_version:
-        get_latest_stable_ver(filename)  # Connect to the internet and get the latest stable version of DTD and save it to a file. This happens every few days automatically, or whenever the user manually initiates an update check.
-        refreshed_stable_version = True     # Set the refreshed_stable_version flag, to ensure the game doesn't get stuck in an endless loop of refreshing.
+    days_elapsed = check_latest_ver_cached(filename)
+    if days_elapsed > 3 or method_of_access == "manual" and not refreshed_latest_release_ver:
+        get_latest_release_ver(filename)  # Connect to the internet and get the latest stable version of DTD and save it to a file. This happens every few days automatically, or whenever the user manually initiates an update check.
+        refreshed_latest_release_ver = True     # Set the refreshed_latest_release_ver flag, to ensure the game doesn't get stuck in an endless loop of refreshing.
         check_for_updates(method_of_access)
     try:
         with open(filename) as f:
@@ -1048,12 +1050,12 @@ if not os.path.isdir('sfx') and not no_pygame:      # This runs on startup and c
 
 if sound_directory_error is False and no_pygame is False:
     try:
-        with open('savedprefs.dat', 'rb') as f:
+        with open('config/savedprefs.dat', 'rb') as f:
             mute_audio = pickle.load(f)
     except FileNotFoundError:
         pass
     except pickle.UnpicklingError or ValueError or EOFError:
-        os.remove('savedprefs.dat')
+        os.remove('config/savedprefs.dat')
     if mute_audio == [True]:
         mute_audio = True
     if mute_audio == [False]:
@@ -1346,9 +1348,9 @@ def ask_load_save(filename):
 def load():
     global basic_graphics_enabled, classic_theme_enabled
     slots = [
-        {'number': 1, 'filename': 'savedata.dat'},
-        {'number': 2, 'filename': 'savedata2.dat'},
-        {'number': 3, 'filename': 'savedata3.dat'}
+        {'number': 1, 'filename': 'data/savedata.dat'},
+        {'number': 2, 'filename': 'data/savedata2.dat'},
+        {'number': 3, 'filename': 'data/savedata3.dat'}
     ]
 
     print(generate_header('LOAD GAME'))
@@ -1482,9 +1484,9 @@ def display_save_slot_info(slot_info):
 def save_game():
     global debug, basic_graphics_enabled, disableOverwrite, postGameSave
     slots = [
-        {'number': 1, 'filename': 'savedata.dat'},
-        {'number': 2, 'filename': 'savedata2.dat'},
-        {'number': 3, 'filename': 'savedata3.dat'}
+        {'number': 1, 'filename': 'data/savedata.dat'},
+        {'number': 2, 'filename': 'data/savedata2.dat'},
+        {'number': 3, 'filename': 'data/savedata3.dat'}
     ]
     print(generate_header("SAVE GAME"))
     for slot_info in slots:
@@ -1610,13 +1612,14 @@ def userMultiChoice():
 
 
 def stats():
-    global savePoint, area, player, basic_graphics_enabled
+    global area, player, basic_graphics_enabled
     if not basic_graphics_enabled:
         print("\n█ YOUR STATS: ░▒▒█████████████████")
     else:
         print("\n== YOUR STATS ==")
     print("Name: "+str(player.get_name())+"\nDefence: "+str(player.get_health())+"/"+str(player.get_max_health())+"\nAttack Damage: "+str(player.get_attack()))
     time.sleep(1)
+    savePoint = player.get_save_location()
     if savePoint == 0 and area == 0:
         userMultiChoice()
     if savePoint == 0 and area == 1:
@@ -4414,16 +4417,39 @@ jingle sound like the music that would play in an elevator. He put this together
 verison that was used in-game. I really liked it so it stuck!"""
     elif choice == 12:
         selection = 'load'
+        friendlyname = "Load"
+        description = r"""This is the jingle that's played when you load a saved game! If you haven't already, check out the
+track 'Elevator' - it's an extended version of this sound!"""
     elif choice == 13:
         selection = 'gameover'
+        friendlyname = "Game Over"
+        description = r"""This is the theme played when you get a game over. Something interesting about this tune is that since
+it was originally implemented into the game, it's never changed. Sure, it's been re-recorded and cleaned up over the years, but
+the general sound and composition has never changed since the theme first debuted."""
     elif choice == 14:
         selection = 'basckground'
+        friendlyname = "Background"
+        description = r"""This is an interesting one - this song came about years ago; it was added in to demo a feature that never
+made it to the final release. The feature in question was almost immediately scrapped, but this audio has hung about in the game's 
+files - nothing but a remnant of a feature that never saw the light of day. It's actually kinda sad if you think about it.
+
+Huh, this got weirdly philosophical. Anyways, this is the first time this song has been accessible to players in-game through
+normal means! It's always been in the files though - if you know how, you can hear this in versions of DTD from years back."""
     elif choice == 15:
         selection = 'ambient'
+        friendlyname = "Credits"
+        description = r"""
+"""
     elif choice == 16:
         selection = 'ambient_percussion'
+        friendlyname = "Credits (Alt. Version)"
+        description = r"""
+"""
     elif choice == 17:
         selection = 'curtain_call'
+        friendlyname = "Curtain Call"
+        description = r"""
+"""
     else:
         game_beat_extras()
     play_audio(selection, friendlyname, description)
@@ -4452,7 +4478,7 @@ def sound_test():
     elif choice == 2:
         pygame.mixer.music.stop()
         print(
-            "\nHere are some things you can try:\n-Ensure volume is turned up on your device\n-Restart the program\n-Reinstall pygame (Source code users only)\n-Ensure audio isn't muted in the game\n-Ensure the game's audio files have been downloaded and saved in the same folder as the Python script\n-Uninstall and reinstall the program (Windows users only)\n\nIf none of the above steps work for you, reach out! Use the 'Report a bug' feature in the 'Options' menu in order to report a bug.")
+            "\nHere are some things you can try:\n-Ensure volume is turned up on your device\n-Restart the program\n-Reinstall pygame (Source code users only)\n-Ensure audio isn't muted in the game\n-Ensure the game's audio files have been downloaded and saved in the same folder as the Python script\n-Uninstall and reinstall the program (Windows users only)\n\nIf none of the above steps work for you, reach out! Use the 'Report a bug' feature in the 'Settings' menu in order to report a bug.")
         audio_settings()
     else:
         pygame.mixer.music.stop()
@@ -4481,8 +4507,7 @@ def audio_settings():
     if choice == 1 and mute_audio is not True:
         if mute_audio != True:
             mute_audio = True
-            with open('savedprefs.dat', 'wb') as f:
-                pickle.dump([mute_audio], f, protocol=2)
+            save_settings('savedprefs', [mute_audio])
             print("Audio has been muted.")
             audio_settings()
     elif choice == 1 and mute_audio is True:
@@ -4491,10 +4516,7 @@ def audio_settings():
             audio_settings()
         else:
             mute_audio = False
-            with open('savedprefs.dat', 'wb') as f:
-                pickle.dump([mute_audio], f, protocol=2)
-            if debug != 0:
-                print(mute_audio)
+            save_settings('savedprefs', [mute_audio])
             print("Audio has been unmuted.")
             audio_settings()
     elif choice == 2:
@@ -4550,9 +4572,9 @@ def ask_erase_save(filename):
 def erase_save_data():
     print(generate_header("DELETE SAVE FILE"))
     slots = [
-        {'number': 1, 'filename': 'savedata.dat'},
-        {'number': 2, 'filename': 'savedata2.dat'},
-        {'number': 3, 'filename': 'savedata3.dat'}
+        {'number': 1, 'filename': 'data/savedata.dat'},
+        {'number': 2, 'filename': 'data/savedata2.dat'},
+        {'number': 3, 'filename': 'data/savedata3.dat'}
     ]
     print("Select a save file to erase:")
     for slot_info in slots:
@@ -4591,9 +4613,7 @@ def auto_update_settings():
             else:
                 auto_updates_disabled = False
                 user_feedback = "enabled."
-            print("Saving changes...")
-            with open('updateprefs.dat', 'wb') as f:
-                pickle.dump([auto_updates_disabled], f, protocol=2)
+            save_settings('update_configuration', [auto_updates_disabled])
             print("Automatic Updates are now "+str(user_feedback))
             software_update_settings()
         elif choice == 2:
@@ -4606,7 +4626,7 @@ def auto_update_settings():
 
 
 def software_update_settings():
-    global auto_updates_disabled, refreshed_stable_version
+    global auto_updates_disabled, refreshed_latest_release_ver
     auto_update_toggle = "Disable "
     if auto_updates_disabled:
         auto_update_toggle = "Enable "
@@ -4622,7 +4642,7 @@ def software_update_settings():
         software_update_settings()
     if choice == 1:
         print("Checking for updates...")
-        refreshed_stable_version = False    # This gets set to True when the game starts, so reset it to False so the game is getting the latest copy of the file.
+        refreshed_latest_release_ver = False    # This gets set to True when the game starts, so reset it to False so the game is getting the latest copy of the file.
         if check_network_connection():          # Returns True if there is an active network connection.
             check_for_updates(method_of_access='manual')    # The variable 'method_of_access' is set to 'manual', so
         else:                                               # the game knows that the user initiated the update check.
@@ -4641,8 +4661,7 @@ def disable_basic_graphics():
     print("Disabling Basic Graphics mode...")
     basic_graphics_enabled = False
     classic_theme_enabled = False
-    with open('graphics_configuration.dat', 'wb') as f:
-        pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
+    save_settings('graphics_configuration', [basic_graphics_enabled, classic_theme_enabled])
     print("\nBasic Graphics mode has been disabled.")
     graphics_settings()
 
@@ -4653,8 +4672,7 @@ def enable_basic_graphics():
     basic_graphics_enabled = True
     classic_theme_enabled = True
     time.sleep(0.5)
-    with open('graphics_configuration.dat', 'wb') as f:
-        pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
+    save_settings('graphics_configuration', [basic_graphics_enabled, classic_theme_enabled])
     print("\nBasic Graphics mode has been enabled.")
     graphics_settings()
 
@@ -4697,10 +4715,8 @@ def disable_classic_theme():
         if choice == 1:
             print("Applying theme...")
             classic_theme_enabled = False
-            print("Saving settings...")
-            with open('graphics_configuration.dat', 'wb') as f:
-                pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
-            print("Flow theme has been enabled.")
+            save_settings('graphics_configuration', [basic_graphics_enabled, classic_theme_enabled])
+            print("\nFlow Theme has been enabled.")
             time.sleep(0.5)
             graphics_settings()
         elif choice == 2:
@@ -4717,15 +4733,12 @@ def enable_classic_theme():
     if classic_theme_enabled is True:
         disable_classic_theme()
     try:
-        choice = int(input("\nThe Classic theme is a throwback to older versions of DeathTrap Dungeon. Making use of simplistic characters,\nClassic theme transforms the look and feel of the game and is perfect for those who prefer the\nmore simplistic look of the menus in older versions of DeathTrap Dungeon.\n\nUse this theme?\n1] Yes\n2] No\n--> "))
+        choice = int(input("\nClassic Theme is a throwback to older versions of DeathTrap Dungeon. Making use of simplistic characters,\nClassic Theme transforms the look and feel of the game and is perfect for those who prefer the\nmore simplistic look of the menus in older versions of DeathTrap Dungeon.\n\nUse this theme?\n1] Yes\n2] No\n--> "))
         if choice == 1:
             print("Applying theme...")
-            time.sleep(0.2)
             classic_theme_enabled = True
-            print("Saving settings...")
-            with open('graphics_configuration.dat', 'wb') as f:
-                pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
-            print("Classic Theme has been enabled.")
+            save_settings('graphics_configuration', [basic_graphics_enabled, classic_theme_enabled])
+            print("\nClassic Theme has been enabled.")
             time.sleep(0.5)
             graphics_settings()
         else:
@@ -4807,12 +4820,18 @@ def launch_bug_report(diagnostic_data, description, e):
         choice = int(input("\nThe above information contains important details (such as which version of DTD you are using), which\nmassively helps when fixing bugs. When you are ready to continue, select the relevant option below.\n\n1] I have copied this info, take me to the bug report page\n2] Cancel\n--> "))
         if choice == 1:
             webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/')
-            settings()
+            if description and e is None:
+                settings()
+            else:
+                handle_error(description, e)
         elif choice == 2:
-            settings()
+            if description and e is None:
+                settings()
+            else:
+                handle_error(description, e)
         else:
             invalid_selection_message()
-            settings()
+            launch_bug_report(diagnostic_data, description, e)
     except ValueError:
         invalid_selection_message()
         launch_bug_report(diagnostic_data, description, e)
@@ -4833,15 +4852,15 @@ def bug_report():
 
 
 def apply_default_settings():
-    global sound_module_error, auto_applied_basic_graphics
+    global no_pygame, auto_applied_basic_graphics
     skipAudioReset = False
     try:
         choice = int(input("\nAll settings will be reset to default, are you sure you'd like to continue?\n1] Yes\n2] No\n--> "))
         if choice == 1:
             print("Resetting...")
-            if not sound_module_error:
+            if not no_pygame:
                 mute_audio = False
-                with open('savedprefs.dat', 'wb') as f:
+                with open('config/savedprefs.dat', 'wb') as f:
                     pickle.dump([mute_audio], f, protocol=2)
             else:
                 skipAudioReset = True
@@ -4849,13 +4868,13 @@ def apply_default_settings():
                 basic_graphics_enabled = False
             else:
                 basic_graphics_enabled = True
-            with open('graphics_configuration.dat', 'wb') as f:
+            with open('config/graphics_configuration.dat', 'wb') as f:
                 pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
             smallerDisplay = False
-            with open('displaysettings.dat', 'wb') as f:
+            with open('config/displaysettings.dat', 'wb') as f:
                 pickle.dump([smallerDisplay], f, protocol=2)
             auto_updates_disabled = False
-            with open('updateprefs.dat', 'wb') as f:
+            with open('config/updateprefs.dat', 'wb') as f:
                 pickle.dump([auto_updates_disabled], f, protocol=2)
             if os.path.exists('themes.dat'):
                 try:
@@ -4867,7 +4886,7 @@ def apply_default_settings():
             enemy_only_critical = False
             disableOverwrite = False
             skipOverwriteConfirmation = False
-            with open('gameplay_settings.dat', 'wb') as f:
+            with open('config/gameplay_settings.dat', 'wb') as f:
                 pickle.dump(
                     [disable_critical, player_only_critical, enemy_only_critical, disableOverwrite,
                      skipOverwriteConfirmation], f,
@@ -4878,13 +4897,13 @@ def apply_default_settings():
                 time.sleep(0.5)
                 advanced_settings()
             else:
-                print("\nThe following settings could not be reset:")
+                print("\nThe following settings couldn't be reset:")
                 if auto_applied_basic_graphics:
-                    print("-Basic Graphics mode could not be disabled.")
+                    print("- Basic Graphics mode could not be disabled because your system can't render standard graphics.")
                 if skipAudioReset:
-                    print("-Audio could not be unmuted.")
+                    print("- Audio could not be unmuted because the Pygame module is not installed.")
                 print(
-                    "\nFor more information, please visit the DTD Help Page at: https://reubenparfrey.wixsite.com/deathtrap")
+                    "\nFor more information, please visit the DTD Help Page at: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
                 print("\nAll other settings were successfully reset.")
                 time.sleep(0.5)
                 advanced_settings()
@@ -4924,34 +4943,27 @@ def advanced_about():   # Exposes advanced game info to the player - this is mos
     advanced_settings()
 
 
-def show_release_notes():
-    print("This is placeholder text.")
-    advanced_settings()
-
-
 def advanced_settings():
     print(generate_header("ADVANCED SETTINGS"))
-    print("1] What's New?\n2] Refresh\n3] Default Settings\n4] View detailed game info\n5] Delete a save file")
+    print("1] Refresh\n2] Default Settings\n3] View detailed game info\n4] Delete a save file")
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
     elif basic_graphics_enabled and classic_theme_enabled:
         print("==================================")
     try:
-        choice = int(input("6] Cancel\n--> "))
+        choice = int(input("5] Cancel\n--> "))
     except ValueError:
         advanced_settings()
-    if choice == 3:
+    if choice == 2:
         apply_default_settings()
-    elif choice == 2:
-        refresh()
-    elif choice == 4:
-        advanced_about()
-    elif choice == 5:
-        erase_save_data()
-    elif choice == 6:
-        settings()
     elif choice == 1:
-        show_release_notes()
+        refresh()
+    elif choice == 3:
+        advanced_about()
+    elif choice == 4:
+        erase_save_data()
+    elif choice == 5:
+        settings()
     else:
         print("\nPlease select a valid option.")
         advanced_settings()
@@ -4959,10 +4971,8 @@ def advanced_settings():
 
 def save_gameplay_settings():
     global disable_critical, player_only_critical, enemy_only_critical, disableOverwrite, skipOverwriteConfirmation
-    print("Saving settings...")
-    with open('gameplay_settings.dat', 'wb') as f:
-        pickle.dump([disable_critical, player_only_critical, enemy_only_critical, disableOverwrite, skipOverwriteConfirmation], f, protocol=2)
-    print("Saved!")
+    save_settings('gameplay_settings', [disable_critical, player_only_critical, enemy_only_critical, disableOverwrite, skipOverwriteConfirmation])
+    print("\nDone!")
     gameplay_settings()
 
 
@@ -5118,6 +5128,15 @@ def gameplay_settings():
     else:
         print("\nPlease choose a valid option.")
         gameplay_settings()
+
+
+def save_settings(file_name, data_to_save):     # This function receives the name of the data file to write to and the
+    print("Saving settings...")                 # actual data itself, then stores it. This function is modular, which saves
+    try:                                        # me repeating the save code over and over again.
+        with open('config/'+file_name+'.dat', 'wb') as f:
+            pickle.dump(data_to_save, f, protocol=2)
+    except Exception:
+        pass
 
 
 def settings():
@@ -5293,8 +5312,6 @@ def choice2():
         time.sleep(1.25)
         print("\nYou raise the shard, and he raises his weapon...")
         time.sleep(1.5)
-        if debug != 0:
-            print("area=", area)
         encounter_enemy('guard')
     elif dropSaw == 2:
         time.sleep(0.75)
@@ -5305,6 +5322,7 @@ def choice2():
 
 
 def chapterOneChoice():
+    global player
     try:
         choice = int(
             input("\nWhat will you do? [1] to examine your surroundings further, [2] to try rattling the cell door. "))
@@ -5317,6 +5335,7 @@ def chapterOneChoice():
             "\nYou glance around, looking for anything that could aid you. You notice a shard of glass laying in one corner.")
         time.sleep(1.5)
         print("\nYou pocket it, sure it'll come in handy.")
+        player.update_defensive_items('Shard of Glass')
         choice2()
     elif choice == 2:
         print(
@@ -5417,6 +5436,7 @@ Found a bug? Please be sure to report this using the 'Report a Bug' feature in t
 
 def menu():
     global debug, checked_for_update, basic_graphics_enabled, classic_theme_enabled, auto_applied_basic_graphics, mute_audio, is_beta
+    data_format_assistant()
     if not auto_updates_disabled and not checked_for_update:
         checked_for_update = True   # This is a flag to stop the update check being called every time the menu is loaded. It's global so that it doesn't get reset every time the menu is called.
         if check_network_connection():    # Begin the update checking process by first checking for internet connectivity.
