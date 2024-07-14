@@ -80,3 +80,4 @@ Key- [x] = A patch for this bug has been implemented.
 - Small visual bug when Basic Graphics is enabled - the warning text shown when the game is started shows that classic theme is also enabled, which is not always the case and is unneccesary. []
 - When viewing stats after a battle, the 'Held items' list is empty even if you are holding items. []
 - The game crashes when you check for updates manually without an internet connection (auto updates don't have this issue.) []
+- When choosing 'Report a Bug' in Settings, cancelling out of the dialogue causes a broken Error Handler screen to appear. []
