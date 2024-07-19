@@ -16,9 +16,6 @@ variables floating around in the code.)	[MOSTLY COMPLETE, NEEDS REFINEMENT]
 - Add descriptions for tracks in the Audio Player. [IN PROGRESS]
 - Migrate in-game chests to the new search_chest function, and remove legacy code. [MOSTLY DONE]
 - Re-implement release notes option when a new version is available [POSTPONED TO NEXT FEATURE UPDATE]
-- Change how the game handles data files:
-	> Rename some files to make them easier to identify [COMPLETE]
-	> Locate data files in directories mto clean up the game's working directory [STARTED]
 
 
 PROPOSED FEATURES THAT WERE REMOVED:
@@ -55,6 +52,9 @@ attribute of the Player class.
 - Re-wrote the update system from scratch:
 	> Only check for updates every 3 days to avoid issues when starting the game with an unstable internet connection.
 	> Host the latest stable version on GitHub - depreciate the old update server in the near future.
+- Change how the game handles data files:
+	> Rename some files to make them easier to identify
+	> Locate data files in directories to clean up the game's working directory
 
 
 KNOWN BUGS:
@@ -63,7 +63,7 @@ Key- [x] = A patch for this bug has been implemented.
    - [] = I am aware of the bug, but haven't gotten around to patching it.
 
 - 'Never ask for overwrite confirmation' option currently doesn't work. []
-- Some formatting bugs during battles. []
+- Some formatting bugs during battles. [x]
 - 'Erase save data' option returns to the main Options screen, instead of the Advanced screen as expected. [x]
 - When Basic Graphics is enabled, the game still thinks the Flow theme is active if you enter the Themes menu. [x]
 - Some crashes assosiated with playing under a previously converted save file. [x]
@@ -79,5 +79,5 @@ Key- [x] = A patch for this bug has been implemented.
 - When Pygame is not installed, the game ignores this and allows audio to be unmuted when applying default settings. [x]
 - Small visual bug when Basic Graphics is enabled - the warning text shown when the game is started shows that classic theme is also enabled, which is not always the case and is unneccesary. []
 - When viewing stats after a battle, the 'Held items' list is empty even if you are holding items. []
-- The game crashes when you check for updates manually without an internet connection (auto updates don't have this issue.) []
-- When choosing 'Report a Bug' in Settings, choosing 'Report a Bug Online', then immediately cancelling out of the dialogue - a broken Error Handler screen appears. []
+- The game crashes when you check for updates manually without an internet connection (auto updates don't have this issue.) [x] (I was unable to reproduce this one, so I've marked it as patched but I'll keep a close eye on this.)
+- When choosing 'Report a Bug' in Settings, choosing 'Report a Bug Online', then immediately cancelling out of the dialogue - a broken Error Handler screen appears. [x]
