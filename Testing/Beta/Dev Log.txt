@@ -78,7 +78,7 @@ Key- [x] = A patch for this bug has been implemented.
 - Using the 'Examine' option in battles shows the defensive items list incorrectly - doesn't remove the 'No defensive items' message from the start of the list. [x]
 - When Pygame is not installed, the game ignores this and allows audio to be unmuted when applying default settings. [x]
 - Small visual bug when Basic Graphics is enabled - the warning text shown when the game is started shows that classic theme is also enabled, which is not always the case and is unneccesary. []
-- When viewing stats after a battle, the 'Held items' list is empty even if you are holding items. []
+- When viewing stats after a battle, the 'Held items' list is empty even if you are holding items. [x]
 - The game crashes when you check for updates manually without an internet connection (auto updates don't have this issue.) [x] (I was unable to reproduce this one, so I've marked it as patched but I'll keep a close eye on this.)
 - When choosing 'Report a Bug' in Settings, choosing 'Report a Bug Online', then immediately cancelling out of the dialogue - a broken Error Handler screen appears. [x]
 - The game crashes after winning a battle if Pygame isn't installed. [x]
