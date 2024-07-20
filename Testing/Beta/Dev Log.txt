@@ -8,14 +8,9 @@ This file is intended to help with the development of DTD v3.0.0. It contains th
 
 
 TO DO:
-- Clean up legacy variables, rename them to better follow Python best practice.	[IN PROGRESS - WILL BE A MAJOR FOCUS IN THE NEXT FEATURE UPDATE]
 - Add comments to the source code to make it easier to maintain. [IN PROGRESS]
-- Integrate items into some sort of class system (objects with attributes rather than a bunch of random 
-variables floating around in the code.)	[MOSTLY COMPLETE, NEEDS REFINEMENT]
-	> Very nearly complete, still have to integrate it fully.
-- Add descriptions for tracks in the Audio Player. [IN PROGRESS]
-- Migrate in-game chests to the new search_chest function, and remove legacy code. [MOSTLY DONE]
-- Re-implement release notes option when a new version is available [POSTPONED TO NEXT FEATURE UPDATE]
+- Migrate in-game chests to the new search_chest function, and remove legacy code. [I THINK THIS IS DONE, NEEDS VERIFYING]
+- Test the crap out of the game and iron out the last few bugs. [IN PROGRESS]
 
 
 PROPOSED FEATURES THAT WERE REMOVED:
@@ -23,6 +18,8 @@ PROPOSED FEATURES THAT WERE REMOVED:
 - Add a "What's New?" option to the Advanced Settings menu, which acts as the changelog. [REMOVED - NOT NECESSARY]
 - Add a Bug Report feature - if the game crashes, send reports (containing diagnostic data) via email or telegram to myself. [CANCELLED - the system worked but added more complexity, plus the Telegram API key used would be publicly available thanks to the open source license.)
 - Add an autosave feature (Was implemented in early betas but was removed when porting the save system over to the new codebase. Might get added back in a future update.)
+- Re-implement release notes option when a new version is available [POSTPONED TO NEXT FEATURE UPDATE]
+- Clean up legacy variables, rename them to better follow Python best practice.	[IN PROGRESS - WILL BE A MAJOR FOCUS IN THE NEXT FEATURE UPDATE]
 
 
 COMPLETED FEATURES / PATCHES:
@@ -55,6 +52,9 @@ attribute of the Player class.
 - Change how the game handles data files:
 	> Rename some files to make them easier to identify
 	> Locate data files in directories to clean up the game's working directory
+- Integrate items into some sort of class system (objects with attributes rather than a bunch of random 
+variables floating around in the code.)	
+- Add descriptions for tracks in the Audio Player.
 
 
 KNOWN BUGS:
