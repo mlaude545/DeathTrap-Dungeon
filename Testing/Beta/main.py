@@ -1062,17 +1062,17 @@ if sound_directory_error is False and no_pygame is False:
         mute_audio = False
 
 
-def save_data_conversion_utility(save_file):    # The Save Data Conversion Utility is a built-in tool that allows a user
-    print("\nConverting save file...")          # to convert save files created in older versions of DTD. It works by
-    expert_mode_beaten = False                  # loading save data using older parameters, then using this data to
-    try:                                        # overwrite the save file in a new format.
+def save_data_conversion_utility(save_file, extra_feature):  # Save Data Conversion Utility is a built-in tool that allows a user
+    print("\nConverting save file...")                       # to convert save files created in older versions of DTD. It works by
+    expert_mode_beaten = False                               # loading save data using older parameters, then using this data to
+    try:                                                     # overwrite the save file in the current format.
         with open(save_file, 'rb') as f:
             player_name, save_location, damage, max_health, health, smokescreen, healingPotion, area, smokescreenQuantity, healingpotionQuantity, hyperpotionQuantity, game_beaten = pickle.load(
                 f)
     except FileNotFoundError as e:
         description = "Save data is inaccessible."
         handle_error(description, e)
-        load()
+        load(extra_feature)
     except ValueError:
         try:
             with open(save_file, 'rb') as f:
@@ -1085,14 +1085,14 @@ def save_data_conversion_utility(save_file):    # The Save Data Conversion Utili
         except ValueError as e:
             description = "The save file is not supported in this version of Save Data Conversion Utility."
             handle_error(description, e)
-            load()
+            load(extra_feature)
     inventory = {'Healing Potion': int(healingpotionQuantity), 'Hyper Potion': int(hyperpotionQuantity), 'Smokescreen': int(smokescreenQuantity)}   # Populate the inventory as a list using loaded values.
     defensive_items = generate_defensive_item_list(int(max_health), int(damage))    # Generate an array of defensive items to save
     with open(save_file, 'wb') as f:    # Overwrite the incompatible save with a newly generated one.
         pickle.dump([player_name, save_location, damage, max_health, health, game_beaten, expert_mode_beaten, inventory, defensive_items], f,
                     protocol=2)
-    print("Save data has been converted to work on this version of DTD! You can now load the save file.")
-    load()
+    print("Save data has been converted to work on this version of DTD! You can now load the save file.")   # Done! This process used to be a lot more 'in-your-face', but now it largely happens in the background with no user input.
+    load(extra_feature)
 
 
 def warp_to_chapter(save_location):     # This function uses the save_location variable to jump to the correct point
@@ -1149,7 +1149,7 @@ def chapterReplay():
         player.set_save_location(7)
         chapterEight()
     else:
-        game_beat_extras()
+        game_beat_options()
 
 
 def expertMode():
@@ -1158,80 +1158,68 @@ def expertMode():
     global healingPotion, healingpotionQuantity, originalHealingPotion, originalHealingPotionQuantity, savePoint, save_location_cache, player_expert_cache, player
     try:
         choice = int(input("\nAre you ready to begin? To learn more about Expert Mode, select 'More Info'.\n1] Yes\n2] No\n3] More Info\n--> "))
+        if choice == 1:
+            inventory = {'Healing Potion': 0, 'Hyper Potion': 0,
+                         'Smokescreen': 0}  # Create an inventory with default values.
+            defensive_items = ['* No Defensive Items *']
+            expert_mode_enabled = True  # Sets the ExpertModeEnabled flag; this tells the game when expert mode is enabled, and appropriately disables features such as checkpoints.
+            savePoint = save_location_cache  # The variable save_location_cache holds the value of the save location before starting Expert Mode, so it can be restored later. This is a little hacky, I keep meaning to redo this.
+            player_expert_cache = player  # player_expert_cache creates a new Player object, and initialises it with the save file's original attributes, so they can  be restored.
+            player = Player(5, 20, 20, str(player_expert_cache.get_name()), inventory, defensive_items, False, False,
+                            0)  # Create a new player object to overwrite the cached original, with basic stats.
+            print("Good luck!")  # Displays some motivation.
+            time.sleep(0.6)
+            area1()
+        elif choice == 2:
+            extras_menu()
+        elif choice == 3:
+            print("""
+        When Expert Mode is enabled, certain sections in the game become more challenging...
+        - Enemies are more likely to land critical hits. (Normally there is a 1 in 25 chance of this happening, this becomes 1 in 7).
+        - You are less likely to land critical hits (Normally there is a 1 in 10 chance of this happening, this becomes 1 in 15). 
+        - You start at the beginning of the game with basic stats and no inventory items (these are returned upon exiting or beating Expert Mode).
+        - Battles cannot be escaped as easily.
+        - The game cannot be saved, and checkpoints cannot be used.
+        - Enemies are less likely to drop items upon being defeated.
+        - Hyper Potions are less effective.""")
+            expertMode()
+        else:
+            expertMode()
     except ValueError:
         expertMode()
-    if choice == 1:
-        inventory = {'Healing Potion': 0, 'Hyper Potion': 0, 'Smokescreen': 0}  # Create an inventory with default values.
-        defensive_items = ['[No Defensive Items]']
-        expert_mode_enabled = True    # Sets the ExpertModeEnabled flag; this tells the game when expert mode is enabled, and appropriately disables features such as checkpoints.
-        savePoint = save_location_cache   # The variable save_location_cache holds the value of the save location before starting Expert Mode, so it can be restored later. This is a little hacky, I keep meaning to redo this.
-        player_expert_cache = player  # player_expert_cache creates a new Player object, and initialises it with the save file's original attributes, so they can  be restored.
-        player = Player(5, 20, 20, str(player_expert_cache.get_name()), inventory, defensive_items, False, False, 0)  # Create a new player object to overwrite the cached original, with basic stats.
-        print("Good luck!")  # Displays some motivation.
-        time.sleep(0.6)
-        area1()
-    elif choice == 2:
-        game_beat_extras()
-    elif choice == 3:
-        print("""
-When Expert Mode is enabled, certain sections in the game become more challenging...
-- Enemies are more likely to land critical hits. (Normally there is a 1 in 25 chance of this happening, this becomes 1 in 7).
-- You are less likely to land critical hits (Normally there is a 1 in 10 chance of this happening, this becomes 1 in 15). 
-- You start at the beginning of the game with basic stats and no inventory items (these are returned upon exiting or beating Expert Mode).
-- Battles cannot be escaped as easily.
-- The game cannot be saved, and checkpoints cannot be used.
-- Enemies are less likely to drop items upon being defeated.
-- Hyper Potions are less effective.""")
-        expertMode()
-    else:
-        expertMode()
 
 
-def game_beat_extras():
+def game_beat_options():
     global savePoint, gameBeat, no_pygame, sound_directory_error, player
-    print(generate_header('EXTRAS'))
+    print(generate_header('CONGRATULATIONS'))
     try:
-        choice = int(input(
-            "Congratulations on beating the game! Please choose an extra from the list below:\n1] Music Player\n2] Chapter Replay\n3] Expert Mode\n4] Cancel\n--> "))
+        choice = int(input("You have completed the story with this save file! Choose an option to continue:\n1] Chapter Replay\n2] Extras\n3] Cancel\n--> "))
+        if choice == 1:
+            chapterReplay()
+        elif choice == 2:
+            extras_menu()
+        elif choice == 3:
+            load()
+        else:
+            invalid_selection_message()
+            game_beat_options()
     except ValueError:
-        game_beat_extras()
-    if choice == 1 and no_pygame is False and sound_directory_error is False:
-        print(generate_header('MUSIC PLAYER'))
-        print("Listen to DeathTrap Dungeon's soundtrack! All the songs that play in-game can be heard here, as well as some never-before-heard beta tracks!\n")
-        audioPlayer()
-    elif choice == 1 and no_pygame is True:
-        print("\nMusic Player can't be accessed because the required module 'Pygame' is not installed. Please refer to the readme file, or get help\nonline at: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
-        game_beat_extras()
-    elif choice == 1 and sound_directory_error is True:
-        print(
-            "\nMusic Player can't be accessed because audio data could not be loaded. See the error message displayed upon starting the game for more details.")
-        game_beat_extras()
-    elif choice == 2:
-        gameBeat = True
-        chapterReplay()
-    elif choice == 3:
-        print(generate_header("EXPERT MODE"))
-        print("Up for a challenge? Try the game on Expert Mode! Expert Mode cranks the difficulty up to 11, and is designed to \ntest your skills. Do you have what it takes to conquer the ultimate DTD challenge?")
-        expertMode()
-    elif choice == 4:
-        menu()
-    else:
-        game_beat_extras()
+        game_beat_options()
 
 
-def save_file_incompatible(filename):   # Allow the player to convert save data.
+def save_file_incompatible(filename, extra_feature):   # Allow the player to convert save data.
     try:
         choice = int(input("\nThe save file you selected is incompatible with this version of DTD; it needs to be\nconverted before you can use it. Continue?\n1] Yes\n2] No\n--> "))
         if choice == 1:
-            save_data_conversion_utility(filename)
+            save_data_conversion_utility(filename, extra_feature)
         elif choice == 2:
-            load()
+            load(extra_feature)
         else:
             print("\nPlease select a valid option.")
-            save_file_incompatible(filename)
+            save_file_incompatible(filename, extra_feature)
     except ValueError:
         print("\nPlease select a valid option.")
-        save_file_incompatible(filename)
+        save_file_incompatible(filename, extra_feature)
 
 
 def show_save_preview(player):                  # This function generates a clean, compact save file preview that
@@ -1249,7 +1237,7 @@ def show_save_preview(player):                  # This function generates a clea
     if defensive_items is not None:
         for item in defensive_items:
             print("- "+str(item).title())
-    print("\nHELD ITEMS:")
+    print("\nINVENTORY ITEMS:")
     healing_potion_quantity = player.has_item('Healing Potion')
     hyper_potion_quantity = player.has_item('Hyper Potion')
     smokescreen_quantity = player.has_item('Smokescreen')
@@ -1259,6 +1247,8 @@ def show_save_preview(player):                  # This function generates a clea
         print(f"- Hyper Potion x{hyper_potion_quantity}")
     if smokescreen_quantity != 0:
         print(f"- Smokescreen x{smokescreen_quantity}")
+    if healing_potion_quantity == 0 and hyper_potion_quantity == 0 and smokescreen_quantity == 0:
+        print("* No items held in inventory *")
     print("\nPROGRESS:")
     save_location = player.get_save_location()
     if save_location == 0:
@@ -1278,22 +1268,22 @@ def show_save_preview(player):                  # This function generates a clea
     elif save_location == 7:
         print("Chapter Eight: Finale")
     else:
-        print("No progress has been saved.")
+        print("* No progress has been saved. *")
     print("\nACHIEVEMENTS:")
     if player.is_game_beaten():
         print("- The game has been beaten.")
     elif player.is_expert_mode_complete():
         print("- Expert Mode is complete.")
     else:
-        print("= No achievements have been unlocked. =")
+        print("* No achievements have been unlocked *")
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
     else:
         print("==================================")
 
 
-def ask_load_save(filename):
-    global basic_graphics_enabled, classic_theme_enabled, debug, mute_audio, player
+def ask_load_save(filename, extra_feature):
+    global mute_audio, player
     try:
         save_data, is_corrupt, is_incompatible = load_save_data(filename)
         if not is_corrupt and save_data is not None:
@@ -1308,53 +1298,59 @@ def ask_load_save(filename):
                         s = pygame.mixer.Sound("sfx/load.ogg")
                         empty_channel = pygame.mixer.find_channel()
                         empty_channel.play(s)
-                    if save_location == 1 and game_beaten is False:
-                        choice4()
-                    elif save_location == 2 and game_beaten is False:
-                        escape()
-                    elif save_location == 3 and game_beaten is False:
-                        backInside()
-                    elif save_location == 4 and game_beaten is False:
-                        chapterFive()
-                    elif save_location == 5 and game_beaten is False:
-                        chapterSix()
-                    elif save_location == 6 and game_beaten is False:
-                        chapterSeven()
-                    elif save_location == 7 and game_beaten is False:
-                        chapterEight()
-                    elif game_beaten is True:
-                        game_beat_extras()
+                    if extra_feature is None:   # 'extra_feature' is used when we need to load a save for reasons other than jumping into a game as normal - by default it's set to None, which allows the load process to continue as usual.
+                        if save_location == 1 and game_beaten is False:
+                            choice4()
+                        elif save_location == 2 and game_beaten is False:
+                            escape()
+                        elif save_location == 3 and game_beaten is False:
+                            backInside()
+                        elif save_location == 4 and game_beaten is False:
+                            chapterFive()
+                        elif save_location == 5 and game_beaten is False:
+                            chapterSix()
+                        elif save_location == 6 and game_beaten is False:
+                            chapterSeven()
+                        elif save_location == 7 and game_beaten is False:
+                            chapterEight()
+                        elif game_beaten is True:
+                            game_beat_options()
+                    elif extra_feature == 'expert':     # This code runs when the player is starting Expert Mode.
+                        if player.has_beaten_game:
+                            expertMode()
+                        else:
+                            print("\nYou can't play Expert Mode with this save file because you have not beaten the game. Select a save\nfile that you have already beaten the game under.")
+                            load(extra_feature)
                 elif choice == 2:
-                    load()
+                    load(extra_feature)
                 else:
                     print("\nPlease select a valid option.")
-                    ask_load_save(filename)
+                    ask_load_save(filename, extra_feature)
             except ValueError:
                 print("\nPlease select a valid option.")
-                ask_load_save(filename)
+                ask_load_save(filename, extra_feature)
         elif is_corrupt:
             print("\nThe selected save file is corrupt - it cannot be loaded.")
-            load()
+            load(extra_feature)
         elif is_incompatible:
-            save_file_incompatible(filename)
+            save_file_incompatible(filename, extra_feature)
         else:
             print("\nNo save data exists in the specified slot.")
-            load()
+            load(extra_feature)
     except ValueError:
         # Handle Incompatibility
-        save_file_incompatible(filename)
+        save_file_incompatible(filename, extra_feature)
 
 
-def load():
+def load(extra_feature):
     global basic_graphics_enabled, classic_theme_enabled
     slots = [
         {'number': 1, 'filename': 'data/savedata.dat'},
         {'number': 2, 'filename': 'data/savedata2.dat'},
         {'number': 3, 'filename': 'data/savedata3.dat'}
     ]
-
     print(generate_header('LOAD GAME'))
-    for slot_info in slots:
+    for slot_info in slots:                 # Output slot info for each save slot.
         display_save_slot_info(slot_info)
     if not basic_graphics_enabled and not classic_theme_enabled:
         print("██████████████████████████████████")
@@ -1364,54 +1360,41 @@ def load():
         choice = int(input("4] Cancel\n--> "))
     except ValueError:
         print("\nBad input. Only integers can be entered here!")
-        load()
+        load(extra_feature)
 
     if 1 <= choice <= 3:
         slot_info = next((slot for slot in slots if slot['number'] == choice), None)
-        ask_load_save(slot_info['filename'])
+        ask_load_save(slot_info['filename'], extra_feature)
     if choice == 4:
         menu()
     else:
         print("\nPlease select a valid choice.")
-        load()
+        load(extra_feature)
 
 
 def save_success():
-    global player, creditsRolled, establishedSlot, autosave, saved_automatically
-    try:
-        continue2 = int(input("\nGame saved successfully! Continue playing? \n1] Yes\n2] No\n--> "))
-    except ValueError:
-        print("Bad input; an integer must be entered.")
-        save_success()
+    global player, creditsRolled
     save_location = int(player.get_save_location())
     game_beaten = player.is_game_beaten()
-    if continue2 == 1:
-        print(" ")
-        if save_location == 1:
-            choice4()
-        elif save_location == 2:
-            escape()
-        elif save_location == 3:
-            backInside()
-        elif save_location == 4:
-            chapterFive()
-        elif save_location == 5:
-            chapterSix()
-        elif save_location == 6:
-            chapterSeven()
-        elif save_location == 7 and not game_beaten:
-            chapterEight()
-        elif game_beaten and creditsRolled:
-            print("Saved!")
-            postCredits()
+    try:
+        continue2 = int(input("\nYour progress has been saved! Continue playing? \n1] Yes\n2] No\n--> "))
+        if continue2 == 1:
+            print(" ")
+            if not creditsRolled:
+                warp_to_chapter(save_location)
+            elif game_beaten and creditsRolled:
+                print("Saved!")
+                postCredits()
+            else:
+                return
+        elif continue2 == 2:
+            print("Returning to menu...\n")
+            menu()
         else:
-            return
-    elif continue2 == 2:
-        print("Returning to menu...\n")
-        establishedSlot = False
-        autosave = 0
-        menu()
-    else:
+            invalid_selection_message()
+            save_success()
+    except ValueError:
+        invalid_selection_message()
         save_success()
 
 
@@ -1506,15 +1489,19 @@ def save_game():
 
         if 'player_name' in slot_info and 'game_beat' in slot_info and slot_info[
             'player_name'] is not None and not disableOverwrite:
-            overwrite = int(input(
-                f"There is already save data stored in Slot {slot_info['number']}. Overwrite it?\n1] Yes\n2] No\n--> "))
-            if overwrite == 1:
-                post_game_save = slot_info['number'] if slot_info['game_beat'] else 0
-                save_to_slot(slot_info['filename'], post_game_save)
-            else:
+            try:
+                overwrite = int(input(
+                    f"There is already save data stored in Slot {slot_info['number']}. Is it okay to overwrite it?\n1] Yes\n2] No\n--> "))
+                if overwrite == 1:
+                    post_game_save = slot_info['number'] if slot_info['game_beat'] else 0
+                    save_to_slot(slot_info['filename'], post_game_save)
+                else:
+                    save_game()
+            except ValueError:
+                invalid_selection_message()
                 save_game()
         elif 'player_name' in slot_info and 'game_beat' in slot_info and slot_info[
-            'player_name'] is not None and disableOverwrite:
+            'player_name'] is not None and disableOverwrite is True or disableOverwrite is [True]:
             print(
                 f"\nThere is already save data stored in Slot {slot_info['number']}, and it cannot be overwritten. Either select an empty slot to save to, or\ndisable 'Prevent the save file from being overwritten' in the Gameplay menu.")
             save_game()
@@ -1548,7 +1535,7 @@ def askSave():
             if not creditsRolled:
                 print("Okay, maybe next time.")
             else:
-                choice = int(input("Are you sure? Some features unlocked after beating the game will be unavailable if you don't save.\n1] Yes\n2] No\n--> "))
+                choice = int(input("Are you sure? Bonus features unlocked after beating the game will be unavailable if you don't save.\n1] Yes\n2] No\n--> "))
                 if choice == 1:
                     pass
                 else:
@@ -1576,52 +1563,50 @@ def postCreditsAutosave():
     save_to_slot(save_file, post_game_save=0)
 
 
-def multiChoiceExit():
+def confirm_multichoice_exit():
     choice = 0
-    print(
-        "\nAre you sure you'd like to quit? The data you just entered will be lost and you'll be returned to the main menu.\n1] Yes\n2] No")
+    print("\nAre you sure you'd like to quit? The data you just entered will be lost and you'll be returned to the main menu.\n1] Yes\n2] No")
     try:
         choice = int(input("--> "))
+        if choice == 1:
+            menu()
+        elif choice == 2:
+            pre_game_multichoice()
+        else:
+            invalid_selection_message()
+            confirm_multichoice_exit()
     except ValueError:
-        multiChoiceExit()
-    if choice == 1:
-        menu()
-    else:
-        userMultiChoice()
+        confirm_multichoice_exit()
 
 
-def userMultiChoice():
-    global player, autosave, establishedSlot
+def pre_game_multichoice():
+    global player
     print("\nYou're nearly ready to begin, " + str(
         player.get_name()) + "! Take a moment to finalize your Player Profile, or select 'Begin' to start:")
     try:
-        choice = int(input("1] Begin!\n2] Change name\n3] Quit\n--> "))
+        choice = int(input("1] Begin!\n2] Change Name\n3] Quit\n--> "))
     except ValueError:
         print("\nBad input; only integers can be entered here!")
-        userMultiChoice()
+        pre_game_multichoice()
     if choice == 1:
-        establishedSlot = False
-        autosave = 0
         area1()
     elif choice == 2:
-        newNameInput()
+        change_name_input()
+        pre_game_multichoice()
     elif choice == 3:
-        multiChoiceExit()
+        confirm_multichoice_exit()
     else:
-        userMultiChoice()
+        pre_game_multichoice()
 
 
 def stats():
-    global area, player, basic_graphics_enabled
-    if not basic_graphics_enabled:
-        print("\n█ YOUR STATS: ░▒▒█████████████████")
-    else:
-        print("\n== YOUR STATS ==")
+    global area, player
+    print(generate_header('YOUR STATS'))
     print("Name: "+str(player.get_name())+"\nDefence: "+str(player.get_health())+"/"+str(player.get_max_health())+"\nAttack Damage: "+str(player.get_attack()))
     time.sleep(1)
     savePoint = player.get_save_location()
     if savePoint == 0 and area == 0:
-        userMultiChoice()
+        pre_game_multichoice()
     if savePoint == 0 and area == 1:
         choice2Alternate()
     elif savePoint == 1:
@@ -1643,41 +1628,53 @@ def stats():
 def statInputAsk():
     global player
     try:
-        check_input = input("\nWould you like to see your stats?\n1] Yes\n2] No\n--> ")
+        check_input = int(input("\nWould you like to see your stats?\n1] Yes\n2] No\n--> "))
+        if check_input == 1:
+            stats()
+        elif check_input == 2:
+            print("Okay, then.")
+            pre_game_multichoice()
+        else:
+            invalid_selection_message()
+            statInputAsk()
     except ValueError:
+        invalid_selection_message()
         statInputAsk()
-    if check_input == "y" or check_input == "Y" or check_input == "yes" or check_input == "Yes" or check_input == "1":
-        stats()
-    elif check_input == "n" or check_input == "N" or check_input == "no" or check_input == "No" or check_input == "2":
-        print("Okay, then.")
-        userMultiChoice()
+
+
+def check_name_validity(entered_name):  # A simple function to check if an entered name is valid.
+    if entered_name == "" or entered_name == " ":
+        return False    # Return False - prompt the player to choose a different name.
     else:
-        print("That doesn't compute! Please try again.")
-        statInputAsk()
+        return True     # Return True if the name is valid.
 
 
-def newNameInput():
+def change_name_input():
     global player
-    option = input("\nWhat would you like to be called instead?\n--> ")
-    print("So you'd rather be called %s? Got it." % str(player.set_name(option)))
-    time.sleep(0.5)
-    userMultiChoice()
-
-
-def nameChangeAsk():
-    global player
-    name_input = input("\nWould you like to change your name?\n1] Yes\n2] No\n--> ")
-    if name_input == "y" or name_input == "Y" or name_input == "yes" or name_input == "Yes" or name_input == "1" or name_input == "YES":
-        playerName = input("What would you like to be called instead?\n--> ")
-        print("So you'd rather be called %s? Got it." % player.set_name(playerName))
-        time.sleep(1)
-        statInputAsk()
-    elif name_input == "n" or name_input == "N" or name_input == "no" or name_input == "No" or name_input == "2" or name_input == "NO":
-        print("Okay. Make sure you're happy with your name; once you've started a game you can't change it.")
-        statInputAsk()
+    entered_name = input("\nWhat would you like to be called instead?\n--> ")
+    if check_name_validity(entered_name):
+        print("So you'd rather be called %s? Got it." % str(player.set_name(entered_name)))
     else:
-        print("Sorry, that does not compute. Please try again.")
-        nameChangeAsk()
+        print("The name you entered is not valid - please choose a different one.")
+        change_name_input()
+
+
+def name_change_ask():
+    global player
+    try:
+        name_input = int(input("\nWould you like to change your name?\n1] Yes\n2] No\n--> "))
+        if name_input == 1:
+            change_name_input()
+            statInputAsk()
+        elif name_input == 2:
+            print("Okay. Make sure you're happy with your name; once you've started a game you can't change it.")
+            statInputAsk()
+        else:
+            invalid_selection_message()
+            name_change_ask()
+    except ValueError:
+        invalid_selection_message()
+        name_change_ask()
 
 
 def player_name_input():
@@ -1688,13 +1685,13 @@ def player_name_input():
     player = Player(5, 20, 20, "None set", inventory, defensive_items, False, False, 0)
     print(generate_header("WELCOME"))
     print("Welcome to DeathTrap Dungeon! What's your name? ")
-    playerName = input("--> ")
-    if playerName == "" or playerName == " ":
-        print("Please enter a valid name.\n")
-        player_name_input()
+    entered_name = input("--> ")
+    if check_name_validity(entered_name):
+        print(f"You'd like to be called {str(player.set_name(entered_name))}? No problem!")
+        name_change_ask()
     else:
-        print("Oh nice, that's a cool name %s!" % str(player.set_name(playerName)))
-        nameChangeAsk()
+        print("The name you entered is not valid - please choose a different one.")
+        player_name_input()
 
 
 def inventory(enemy_type, enemy_object, battle_logic, audio_lockout):
@@ -1820,7 +1817,7 @@ def expert_checkpoint_restart():
         elif choice == 2:
             player = player_expert_cache    # Return the player's original stats.
             print("\nAll of your previous stats and items have been returned.")
-            game_beat_extras()
+            extras_menu()
         else:
             expert_checkpoint_restart()
     except ValueError:
@@ -2065,7 +2062,7 @@ def stats_warp():   # This function is responsible for placing the player back i
     global player, area     # viewing stats.
     save_location = player.get_save_location()
     if save_location == 0 and area == 0:
-        userMultiChoice()
+        pre_game_multichoice()
     elif save_location == 0 and area == 1:
         choice2Alternate()
     elif save_location == 1:
@@ -2087,14 +2084,20 @@ def stats_warp():   # This function is responsible for placing the player back i
 
 
 def ask_view_stats():
-    global player
+    global player, expert_mode_enabled
     time.sleep(0.5)
     try:
         choice = int(input("\nWould you like to see your stats?\n1] Yes\n2] No\n--> "))
         if choice == 1:
             print(generate_header('YOUR STATS'))
             player_name, player_health, player_max_health, player_attack_damage = player.get_stats()
-            print(f"\n{player_name}\nDEFENCE: {player_health}/{player_max_health}\nATTACK: {player_attack_damage}\nHOLDING:")
+            if expert_mode_enabled:
+                player_name += ' - Playing on Expert Mode'
+            defensive_items = player.get_defensive_items()
+            print(f"YOU ({player_name})\nDEFENCE: {player_health}/{player_max_health}\nATTACK: {player_attack_damage}\nHOLDING:")
+            if defensive_items is not None:
+                for item in defensive_items:
+                    print("- " + str(item).title())
         elif choice == 2:
             pass
         else:
@@ -2121,7 +2124,7 @@ def obtain_dropped_item(sprite, item_description, item_name, item_attack_increme
                 ask_view_stats()
             else:
                 print("\nYou obtained the "+str(item_name)+"!")
-                if item_name != "hyper potion" or "healing potion":
+                if item_name != "hyper potion" or item_name != "healing potion":
                     player.update_defensive_items(str(item_name))
                     if item_attack_increment != 0:  # If the item increases attack power, update player stats accordingly
                         player.gain_attack(int(item_attack_increment))
@@ -2207,8 +2210,10 @@ def enemy_defeated(enemy_type, enemy_object, battle_logic, audio_lockout):  # Lo
 
 
 def examine_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):   # When the player selects 'Examine' during
-    global player                                                           # battle, this displays relevant info.
+    global player, expert_mode_enabled                                      # battle, this displays relevant info.
     player_name, player_health, player_max_health, player_attack_damage = player.get_stats()
+    if expert_mode_enabled:
+        player_name += ' - Playing on Expert Mode'
     defensive_items = player.get_defensive_items()
     enemy_stats = enemy_object.get_stats()
     enemy_name = 'EMPEROR JUNIPER:'
@@ -2327,7 +2332,8 @@ def fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):
         print("\n"+str(enemy_friendly_name)+" has "+str(enemy_object.get_health())+" health remaining.")
         time.sleep(0.5)
         if battle_logic.is_dead(int(enemy_object.get_health())):  # Passes enemy health to the is_dead method, to check if the enemy has any health remaining.
-            battle_logic.stop_music()   # Stops the battle music.
+            if not mute_audio:  # Only call the function to stop audio if music is unmuted - not performing this check can lead to crashes if Pygame isn't installed.
+                battle_logic.stop_music()   # Stops the battle music.
             print("\nYou are victorious!")
             enemy_defeated(enemy_type, enemy_object, battle_logic, audio_lockout)
     elif choice == 2:
@@ -4154,7 +4160,7 @@ def choice5():
     choice6()
 
 def eatCrackers():
-    global playerHealth, playerMaxHealth
+    global player
     try:
         checkDoor = int(input("Will you examine the package of food [1], or inspect the door [2]? "))
     except ValueError:
@@ -4168,7 +4174,7 @@ def eatCrackers():
         print("\nThey are extremely stale, but provide you with some much needed nourishment.")
         time.sleep(0.5)
         print("\nHealth has been fully restored!\n")
-        playerHealth = playerMaxHealth
+        player.restore_health()
         time.sleep(1)
         print("Having eaten the food, you decide to make your way over to the cell door.")
         time.sleep(1)
@@ -4451,7 +4457,7 @@ normal means! It's always been in the files though - if you know how, you can he
         description = r"""
 """
     else:
-        game_beat_extras()
+        game_beat_options()
     play_audio(selection, friendlyname, description)
 
 
@@ -4817,7 +4823,7 @@ def launch_bug_report(diagnostic_data, description, e):
         bug_report_info = bug_report_info + f"\n\nCrash Details:\n{description}\n{e}"
     print(f"\nPlease copy and paste the following into your bug report: \n\n{bug_report_info}\n")
     try:
-        choice = int(input("\nThe above information contains important details (such as which version of DTD you are using), which\nmassively helps when fixing bugs. When you are ready to continue, select the relevant option below.\n\n1] I have copied this info, take me to the bug report page\n2] Cancel\n--> "))
+        choice = int(input("\nThe above information contains important details (such as which version of DTD you are using), which\nmassively helps when fixing bugs. When you are ready to continue, select the relevant option below.\n\n1] I have copied this info, continue\n2] Cancel\n--> "))
         if choice == 1:
             webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/')
             if description and e is None:
@@ -4825,7 +4831,7 @@ def launch_bug_report(diagnostic_data, description, e):
             else:
                 handle_error(description, e)
         elif choice == 2:
-            if description and e is None:
+            if description is None and e is None:
                 settings()
             else:
                 handle_error(description, e)
@@ -5131,9 +5137,13 @@ def gameplay_settings():
 
 
 def save_settings(file_name, data_to_save):     # This function receives the name of the data file to write to and the
-    print("Saving settings...")                 # actual data itself, then stores it. This function is modular, which saves
-    try:                                        # me repeating the save code over and over again.
-        with open('config/'+file_name+'.dat', 'wb') as f:
+    cwd = os.getcwd()                           # actual data itself, then stores it. This function is modular, which saves
+    data_directory = cwd + '/config'            # me repeating the save code over and over again.
+    if not os.path.exists(data_directory):
+        os.mkdir(data_directory)    # Make a config directory if it doesn't exist.
+    print("Saving settings...")
+    try:
+        with open(data_directory+'/'+file_name+'.dat', 'wb') as f:
             pickle.dump(data_to_save, f, protocol=2)
     except Exception:
         pass
@@ -5378,6 +5388,58 @@ def area1():
     chapterOneChoice()
 
 
+def extras_menu():                      # The extras menu! This contains most of the stuff you unlock when the game has been beaten.
+    print(generate_header('EXTRAS'))
+    try:
+        choice = int(input("Please choose an extra from the list below:\n1] Music Player\n2] Expert Mode\n3] Cancel\n--> "))
+        if choice == 1 and no_pygame is False and sound_directory_error is False:
+            print(generate_header('MUSIC PLAYER'))
+            print(
+                "Listen to DeathTrap Dungeon's soundtrack! All the songs that play in-game can be heard here, as well as some never-before-heard beta tracks!\n")
+            audioPlayer()
+        elif choice == 1 and no_pygame is True:
+            print(
+                "\nMusic Player can't be accessed because the required module 'Pygame' is not installed. Please refer to the readme file, or get help\nonline at: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
+            extras_menu()
+        elif choice == 1 and sound_directory_error is True:
+            print(
+                "\nMusic Player can't be accessed because audio data could not be loaded. See the error message displayed upon starting the game for more details.")
+            extras_menu()
+        elif choice == 2:
+            print(generate_header("EXPERT MODE"))
+            print("Up for a challenge? Try the game on Expert Mode! Expert Mode cranks the difficulty up to 11, and is designed to \ntest your skills. Do you have what it takes to conquer the ultimate DTD challenge?")
+            time.sleep(1)
+            print("\nPlease select a save file to play Expert Mode with:")
+            load(extra_feature='expert')    # Set the extra_feature variable to 'expert' - this tells the load function that we want to play expert mode with the selected save, instead of loading is as normal.
+        elif choice == 3:
+            menu()
+        else:
+            invalid_selection_message()
+            extras_menu()
+    except ValueError:
+        extras_menu()
+
+
+def check_if_extras_unlocked():     # The game needs to have been beaten for Extras to unlock, so this function checks if the game has been beaten.
+    data_files = ['data/savedata.dat', 'data/savedata2.dat', 'data/savedata3.dat']  # Each of the data files that can exist
+    can_load_extras = False
+    for file in data_files:     # Load each save file that exists.
+        try:
+            with open(str(file), 'rb') as f:
+                player_name, save_location, damage, max_health, health, game_beaten, expert_mode_beaten, inventory, defensive_items = pickle.load(
+                    f)
+            if game_beaten:
+                can_load_extras = True  # If the game has been beaten, set can_load_extras to True so the game knows this has been unlocked.
+                break
+        except Exception:   # Handle errors that can result when loading save files, such as missing files or corrupt data.
+            pass
+    if can_load_extras:
+        extras_menu()
+    else:
+        print("\nYou need to beat the game before you can unlock extras! Come back when you have completed the main story.")
+        menu()
+
+
 def confirm_game_exit():
     try:
         choice = int(input("Are you sure you'd like to quit?\n1] Keep playing\n2] Quit\n--> "))
@@ -5448,9 +5510,10 @@ def menu():
  █ MAIN MENU: ░▒▒██████████████████
 █  [1] New Game                    █
 █  [2] Load Saved Game             █
-█  [3] Settings                    █
-█  [4] About DeathTrap Dungeon     █
-█  [5] Quit                        █ 
+█  [3] Extras                      █
+█  [4] Settings                    █
+█  [5] About DeathTrap Dungeon     █
+█  [6] Quit                        █ 
  ██████████████████████████████████ """)
     else:
         print("""+------------------------------+
@@ -5458,9 +5521,10 @@ def menu():
 +------------------------------+
 | [1] New Game                 |
 | [2] Load Saved Game          |
-| [3] Settings                 |
-| [4] About DeathTrap Dungeon  |
-| [5] Quit                     | 
+| [3] Extras                   |
+| [4] Settings                 |
+| [5] About DeathTrap Dungeon  |
+| [6] Quit                     | 
 +------------------------------+""")
     try:
         user_input = int(input("--> "))
@@ -5516,13 +5580,15 @@ def menu():
             time.sleep(3)
             story()
         elif user_input == 2:
-            load()
-        elif user_input == 5:
+            load(extra_feature=None)
+        elif user_input == 3:
+            check_if_extras_unlocked()
+        elif user_input == 6:
             confirm_game_exit()
-        elif user_input == 4:
+        elif user_input == 5:
             print(str(about()))
             menu()
-        elif user_input == 3:
+        elif user_input == 4:
             settings()
         elif user_input == 7:
             debugWarp()
