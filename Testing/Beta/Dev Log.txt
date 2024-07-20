@@ -81,6 +81,6 @@ Key- [x] = A patch for this bug has been implemented.
 - When viewing stats after a battle, the 'Held items' list is empty even if you are holding items. [x]
 - The game crashes when you check for updates manually without an internet connection (auto updates don't have this issue.) [x] (I was unable to reproduce this one, so I've marked it as patched but I'll keep a close eye on this.)
 - When choosing 'Report a Bug' in Settings, choosing 'Report a Bug Online', then immediately cancelling out of the dialogue - a broken Error Handler screen appears. [x]
-- Similar to the above bug, except the same broken Error Handler screen is also triggered after the Help Page is loaded if you choose 'Continue'. []
+- Similar to the above bug, except the same broken Error Handler screen is also triggered after the Help Page is loaded if you choose 'Continue'. [x]
 - The game crashes after winning a battle if Pygame isn't installed. [x]
 - If you aren't holding any inventory items, a message displaying this should be shown in the save file preview - currently nothing is shown. [x]
