@@ -1,3 +1,8 @@
+NOTE:
+This changelog is just a draft!! Chances are it'll still look pretty similar
+when v3.0.0 is released, but it is still subject to change.
+
+
 Welcome to DeathTrap Dungeon v3.0.0! This is a massive release; I originally
 only planned this to be a small bugfix update to DTD v2.9.5, however this
 plan changed when I realised there was still work to be done to the game.
