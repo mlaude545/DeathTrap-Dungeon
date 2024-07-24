@@ -11,6 +11,8 @@ TO DO:
 - Add comments to the source code to make it easier to maintain. [IN PROGRESS]
 - Migrate in-game chests to the new search_chest function, and remove legacy code. [I THINK THIS IS DONE, NEEDS VERIFYING]
 - Test the crap out of the game and iron out the last few bugs. [IN PROGRESS]
+- Add a test_chest function and implement it into the debug warp utility:
+    > This function will take an integer as an input, and will pass the correct values to the search_chest function to allow me to test it.
 
 
 PROPOSED FEATURES THAT WERE REMOVED:
