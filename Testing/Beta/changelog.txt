@@ -214,8 +214,14 @@ BUGFIXES:
 - Fixed a bug where some submenus within the 'Settings' menu would return to the main menu,
  instead of back to the previous menu as expected.
 
-- Fixed a bug where the players could enter an invalid name if you chose to change
+- Fixed a bug where players could enter an invalid name if you chose to change
  your name before starting a new game.
+
+- Fixed several memory leaks, which would cause the game to use high system resources resulting
+ in sluggish performance at best, and instability at worst. 
+
+- Fixed a bug where the game would freeze sometimes after defeating the High Ranking
+ Guard at the end of Chapter Four. 
 
 ===============================================================================
 
