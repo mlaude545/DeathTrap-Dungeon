@@ -21,30 +21,27 @@ from datetime import datetime
 
 # Initialise global variables
 current_version = "3.0.0"  # Version of this release of DTD, used when checking for updates.
-internal_identifier = "DTD v3.0.0 BETA"   # A more human-readable version identifier, which is shown to the user.
-checked_for_update = False  # This changes to True after the game has checked for updates, provided auto updates are enabled.
-is_beta = True   # Set this to True if this is a beta copy of DTD, otherwise it should be False
-refreshed_latest_release_ver = False    # This is used when the user initiates an update check. It ensures that the game refreshes to have the latest version number available from the web.
+internal_identifier = "DTD v3.0.0 BETA\nBuild 260824"   # A more human-readable version identifier, which is shown to the user.
+checked_for_update = False  # This changes to True after the game has completed an auto update check.
+is_beta = True   # Set this to True if this is a beta copy of DTD, otherwise it should be False.
+refreshed_latest_release_ver = False    # This is used when the user initiates an update check. It ensures that the game refreshes to have the latest version number available from the online repo.
+active_theme = "flow"   # The active menu theme. Defaults to Flow.
 
-# More various global variables. Please note that many of these have been depreciated or made redundant, so the aim is to
+enemies_defeated = [0]   # This array contains the enemy_ID values associated with defeated enemies - allows the game to keep a log of which enemies have been defeated during gameplay, so you can't keep fighting them infinitely.
+single_use_items = []   # Similar idea as above, although this array contains single use items found throughout the game.
+
+# More various global variables. Please note that many of these have been depreciated or aren't used anymore, so the aim is to
 # phase many of these out gradually across future releases.
-savePointCopy = 0
 debug = 0
-gotRope = 0
-area = 0
+enemy_ID = 0
 gotShield = 0
-item = 0
 mute_audio = False
 gotKey = False
-foundDoor = False
 sound_module_error = False
 died = False
 smokescreen = False
 healingPotion = False
 searchedChest2 = False
-highRank = False
-discoveredPadlock = False
-defeatedGuardOutsideConfinement = False
 originalGuardHealth = 0
 usedHyperPotion = 0
 originalDamage = 0
@@ -54,9 +51,6 @@ firstSaveRequest = True
 save_location_cache = 0
 searchedChest5 = False
 searchedChest = False
-courtyardGuardKilled = False
-courtyardKey = False
-foundCourtyardDoor = False
 leverPulled = False
 leftDialCorrect = False
 rightDialCorrect = False
@@ -121,65 +115,64 @@ if platform.system() == "Windows":
 # Load graphics settings, and then apply them.
 try:
     with open('config/graphics_configuration.dat', 'rb') as f:
-        basic_graphics_enabled, classic_theme_enabled = pickle.load(f)
-except FileNotFoundError:
-    basic_graphics_enabled = False
-except EOFError:
-    basic_graphics_enabled = False
+        active_theme, basic_graphics_enabled = pickle.load(f)
 except Exception:
-    basic_graphics_enabled = False
+    active_theme = 'flow'
 
-if classic_theme_enabled is True or classic_theme_enabled is [True]:
-    print("\n== Classic Theme is enabled; menus will be displayed as they were in older versions of the game. ==")
+if active_theme == 'classic' and not basic_graphics_enabled:
+    print("\n== Classic Theme is enabled ==")
+    active_theme = "classic"
+elif active_theme == 'basic' and not basic_graphics_enabled:
+    print("\n== Basic Theme is enabled ==")
 
-if basic_graphics_enabled is True or basic_graphics_enabled is [True]:
-    print("\n== Basic Graphics mode is enabled; the game will render graphics in a less detailed way. ==")
-    classic_theme_enabled = True    # Enable classic theme as a fallback to ensure menus cannot be loaded with the Flow style under any circumstances.
+if basic_graphics_enabled:
+    print("\n== Basic Graphics mode is enabled - graphics will not be drawn in full quality ==")
+    active_theme = "basic"    # Enable Basic theme as a fallback to ensure menus cannot be loaded with the Flow style under any circumstances.
 
-# Check if the host supports unicode graphics. If not, enable Basic Graphics mode to avoid crashes.
+# Check if the host supports Unicode graphics. If not, enable Basic Graphics mode to avoid crashes.
 try:
-    sys.stdout.write("█")
-except Exception:   # If unicode characters can't be displayed, show a warning and enable Basic Graphics mode.
+    sys.stdout.write("█")   # Write out a Unicode character.
+    sys.stdout.write("\b")  # Move back one space.
+    sys.stdout.write(" ")   # Delete the character.
+except Exception:   # If an error occurs when trying to print a Unicode character, show a warning and enable Basic Graphics mode.
     basic_graphics_enabled = True
-    auto_applied_basic_graphics = True
+    active_theme = "basic"
+    auto_applied_basic_graphics = True  # This variable tells the game that Basic Graphics was applied automatically, and means that the user can't disable it.
     print("\n== INFORMATION ==\nYour system does not appear to support unicode characters, so Basic Graphics mode has\nbeen enabled. This means that menus and in-game graphics will be rendered in a \nless detailed way. For more info, go to Settings > Graphics > Basic Graphics Mode.")
-sys.stdout.write("\b")
-sys.stdout.flush()
 
 if basic_graphics_enabled == [True]:
     basic_graphics_enabled = True
 if basic_graphics_enabled == [False]:
     basic_graphics_enabled = False
 
-if classic_theme_enabled == [True]:
-    classic_theme_enabled = True
-if classic_theme_enabled == [False]:
-    classic_theme_enabled = False
-
 
 def generate_unformatted_title(title, mode):    # This function generates a header title bar used in the Flow and Basic graphics styles.
     if mode == 'flow':
         return '\n█ ' + str(title) + ': ░▒▒███████████████████████████████████████'  # Create a header more than 34 characters long.
     elif mode == 'basic':
-        return '\n= ' + str(title) + ': =========================================='  # Same, but for Basic Graphics mode.
+        return '\n= ' + str(title) + ': =========================================='  # Same, but for Basic Theme.
 
 
 def generate_header(title):  # This function is used throughout the game to render headings for menus in the correct style.
-    global basic_graphics_enabled, classic_theme_enabled
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        mode = 'flow'
-    elif basic_graphics_enabled and classic_theme_enabled:
-        mode = 'basic'
-    else:
-        mode = 'classic'
-    if mode == 'flow' or mode == 'basic':
-        unformatted_title = generate_unformatted_title(title, mode)
+    global active_theme
+    if active_theme == 'flow' or active_theme == 'basic':
+        unformatted_title = generate_unformatted_title(title, active_theme)
         unformatted_length = len(unformatted_title)     # Get the length of the returned header
         difference = unformatted_length - 35    # Menus in the Flow style are 34 characters wide, so work out the difference between the length of the generated header and where we want it to be.
         header = unformatted_title[:-difference]    # Removes the excess end characters
     else:
         header = '\n== '+str(title)+' =='   # Generate headers that mimic older releases of DTD for the Classic Theme style. These are much simpler to generate than headers for the other two themes.
     return header   # Return the generated header.
+
+
+def generate_seperator():
+    global active_theme
+    menu_bar = r'██████████████████████████████████'
+    if active_theme == 'basic':
+        menu_bar = r'=================================='
+    elif active_theme == 'classic':
+        menu_bar = None
+    return menu_bar
 
 
 # Try to import the Pygame library; this handles audio.
@@ -416,26 +409,26 @@ class Player:
         self.health = self.max_health
         return self.health
 
-    def use_smokescreen(self, area):
-        if area == 1:
+    def use_smokescreen(self, enemy_ID):
+        if enemy_ID == 1:
             second_choice_alternate()
-        elif area == 2:
+        elif enemy_ID == 2:
             chapter_3_choose_direction()
-        elif area == 3:
+        elif enemy_ID == 3:
             print("\nYou rush back to your previous hiding spot.")
             chapter_3_hiding_choice()
-        elif area == 4:
+        elif enemy_ID == 4:
             print("\nYou scurry back to the closet you were previously in.")
             closet()
-        elif area == 5:
+        elif enemy_ID == 5:
             print("\nYou rush back to your previous hiding spot.")
             chapter_3_hiding_choice()
-        elif area == 6:
+        elif enemy_ID == 6:
             print("\nYou scurry back up the path you came down, towards the fountain.")
             courtyard()
-        elif area == 7:
+        elif enemy_ID == 7:
             chapter_7_split()
-        elif area == 8:
+        elif enemy_ID == 8:
             ChapterTwoGuardEscape()
         
     def get_save_location(self):
@@ -776,7 +769,7 @@ class Items:
                :         ;
                 \       /
                  `.___.'"""
-        if self.item_name == "Key":
+        if self.item_name == "key":
             self.item_description = "A rusty key! Maybe it can be used to open a nearby door..."
             self.item_sprite = r"""                                                                    ██████          
                                                                 ████░░░░░░████      
@@ -812,30 +805,36 @@ class Items:
         return self.defense_value
 
 
+def reset_temp_variables():                     # Reset the two arrays used for temporary data storage through the game to avoid holding on
+    global enemies_defeated, single_use_items   # to temporary data for longer than it is needed.
+    enemies_defeated = []
+    single_use_items = []
+
+
 def invalid_selection_message():
     print("\nPlease select a valid option.")    # Show a message when the user selects an invalid menu option or choice.
 
 
 def get_diagnostics():  # This function gathers diagnostic data. This data is shown to the user, and can be included in bug reports.
-    global current_version, basic_graphics_enabled, classic_theme_enabled, auto_updates_disabled, internal_identifier, sound_module_error, sound_directory_error
-    if classic_theme_enabled:
-        active_theme = 'Classic Theme'
-    else:
-        active_theme = 'Flow'
+    global current_version, basic_graphics_enabled, auto_updates_disabled, internal_identifier, sound_module_error, sound_directory_error, active_theme
+    friendly_active_theme = active_theme.title()
     if not sound_module_error and not no_pygame:
         pygame_ver = pygame.version.ver
     else:
         pygame_ver = "(Pygame version data not available - probably not installed.)"
     current_platform = sys.platform
     general_data = [internal_identifier, current_version]
-    diagnostic_data = [current_platform, pygame_ver, basic_graphics_enabled, active_theme, auto_updates_disabled]
-    return f"GENERAL:\nDTD Version: {general_data[0]}\nFriendlyName: {general_data[1]}\n\nDIAGNOSTIC:\nPlatform: {diagnostic_data[0]}\nPygame Version: {diagnostic_data[1]}\nBasic Graphics Status: {diagnostic_data[2]}\nActive Theme: {diagnostic_data[3]}\nAuto Updates Disabled? {diagnostic_data[4]}"
+    auto_updates_status = 'Enabled'
+    if auto_updates_disabled:
+        auto_updates_status = 'Disabled'
+    diagnostic_data = [current_platform, pygame_ver, basic_graphics_enabled, friendly_active_theme, auto_updates_status]
+    return f"GENERAL:\nDTD Version: {general_data[0]}\nFriendlyName: {general_data[1]}\n\nDIAGNOSTIC:\nPlatform: {diagnostic_data[0]}\nPygame Version: {diagnostic_data[1]}\nBasic Graphics: {diagnostic_data[2]}\nActive Theme: {diagnostic_data[3]}\nAuto Updates: {diagnostic_data[4]}"
 
 
 def handle_error(description, e):  # This function displays error messages, taking basic and advanced error info as parameters to display to the user.
     print(generate_header("OOPS! AN ERROR OCCURRED"))
-    print("Looks like an error occurred. Here's what we know:\n\nDETAILS: "+str(description)+"\nTECHNICAL: "+str(e))
-    print("\nNeed some help? Choose an option below. If this issue seems to be a bug, please report it..")
+    print("Sorry, an error has occurred. Here's what we know:\n\nDETAILS: "+str(description)+"\nTECHNICAL: "+str(e))
+    print("\nNeed some help? Choose an option below. If this issue seems to be a bug, please report it.")
     try:
         choice = int(input("1] Get Help Online\n2] Report a Bug\n3] Cancel\n--> "))
         if choice == 1:
@@ -888,7 +887,7 @@ def generate_defensive_item_list(player_max_health, damage):
     return defensive_items
 
 
-def data_format_assistant():    # In previous versions of DTD, data and config files were stored in the current working directory, which was
+def data_format_daemon():    # In previous versions of DTD, data and config files were stored in the current working directory, which was
     current_dir = os.getcwd()   # extremely messy. This function copies these files (if they exist) into directories.
     known_config_files = ['updateprefs.dat', 'graphics_settings.dat', 'gameplay_settings.dat']
     known_data_files = ['savedata.dat', 'savedata2.dat', 'savedata3.dat']
@@ -946,15 +945,19 @@ def confirm_source_code(download_path, url):
 
 
 def ask_download_update(method_of_access, contents):
+    global auto_updates_disabled
     new_version_number = str(contents)
     new_version_number = new_version_number.replace("b", "")
     new_version_number = new_version_number.replace("'", "")
-    if method_of_access == 'manual':                    # Alter the wording of the options presented to the user slightly, depending
-        options = str("1] Download update\n2] Cancel")  # on how the update check was initiated.
+    if method_of_access == 'manual' and generate_seperator():                    # Alter the wording of the options presented to the user slightly, depending
+        options = str(f"1] Download update\n{generate_seperator()}\n2] Cancel")  # on how the update check was initiated.
+    elif method_of_access == 'manual' and not generate_seperator():
+        options = str("1] Download update\n2] Cancel")
+    elif method_of_access == 'auto' and generate_seperator():
+        options = str(f"1] Download Update\n2] Skip For Now\n{generate_seperator()}\n3] Skip and Don't Ask Again")
     else:
-        options = str("1] Download Update\n2] Skip For Now\n3] Skip and Don't Ask Again")
-    print(f"\nA new version of DeathTrap Dungeon (v{new_version_number}) is available!")
-    print(options)
+        options = str(f"1] Download Update\n2] Skip For Now\n3] Skip and Don't Ask Again")
+    print(f"{generate_header('UPDATE AVAILABLE')}\nA new version of DeathTrap Dungeon (v{new_version_number}) is available!\n{options}")
     try:
         choice = int(input("--> "))
         if choice == 1:
@@ -971,11 +974,9 @@ def ask_download_update(method_of_access, contents):
         elif choice == 2 and method_of_access == 'manual':
             software_update_settings()
         elif choice == 3 and method_of_access == 'auto':
-            print(
-                "\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by selecting 'Settings' on the main menu, then selecting 'Software Updates'.")
+            print("\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by selecting 'Settings' on the main menu, then selecting 'Software Updates'.")
             auto_updates_disabled = True
-            with open('updateprefs.dat', 'wb') as f:
-                pickle.dump([auto_updates_disabled], f, protocol=2)
+            save_settings('update_configuration', [auto_updates_disabled])
             menu()
         else:
             invalid_selection_message()
@@ -1020,7 +1021,8 @@ def check_for_updates(method_of_access):
     if not os.path.isfile(filename) and not refreshed_latest_release_ver:    # Check if a file exists in the temp directory that contains the latest stable version of DTD.
         get_latest_release_ver(filename)  # Get the latest stable version from GitHub if the file doesn't exist.
         refreshed_latest_release_ver = True
-        check_for_updates(method_of_access)
+        if check_network_connection():  # Check if there is an active internet connection.
+            check_for_updates(method_of_access)
     days_elapsed = check_latest_ver_cached(filename)
     if days_elapsed > 3 or method_of_access == "manual" and not refreshed_latest_release_ver:
         get_latest_release_ver(filename)  # Connect to the internet and get the latest stable version of DTD and save it to a file. This happens every few days automatically, or whenever the user manually initiates an update check.
@@ -1080,7 +1082,7 @@ def save_data_conversion_utility(save_file, extra_feature):  # Save Data Convers
     expert_mode_beaten = False                               # loading save data using older parameters, then using this data to
     try:                                                     # overwrite the save file in the current format.
         with open(save_file, 'rb') as f:
-            player_name, save_location, damage, max_health, health, smokescreen, healingPotion, area, smokescreenQuantity, healingpotionQuantity, hyperpotionQuantity, game_beaten = pickle.load(
+            player_name, save_location, damage, max_health, health, smokescreen, healingPotion, enemy_ID, smokescreenQuantity, healingpotionQuantity, hyperpotionQuantity, game_beaten = pickle.load(
                 f)
     except FileNotFoundError as e:
         description = "Save data is inaccessible."
@@ -1089,7 +1091,7 @@ def save_data_conversion_utility(save_file, extra_feature):  # Save Data Convers
     except ValueError:
         try:
             with open(save_file, 'rb') as f:
-                 player_name, save_location, damage, max_health, health, smokescreen, healingPotion, area, smokescreenQuantity, healingpotionQuantity, hyperpotionQuantity, game_beaten, expert_mode_beaten = pickle.load(
+                 player_name, save_location, damage, max_health, health, smokescreen, healingPotion, enemy_ID, smokescreenQuantity, healingpotionQuantity, hyperpotionQuantity, game_beaten, expert_mode_beaten = pickle.load(
                     f)
         except FileNotFoundError as e:
             description = "Save data is inaccessible."
@@ -1126,18 +1128,16 @@ def warp_to_chapter(save_location):     # This function uses the save_location v
 
 
 def chapter_replay():
-    global player, basic_graphics_enabled, classic_theme_enabled
+    global player, basic_graphics_enabled
     print(generate_header("CHAPTER REPLAY"))
     print("Select a chapter to play:\n1] Enter the Dungeon\n2] Solitary Confinement\n3] The Great Escape\n4] What Doesn't Kill You Makes You Stronger\n5] A Breath of Fresh Air\n6] A Puzzle in Darkness\n7] With Great Power\n8] Finale")
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████\n9] Cancel")
-    else:
-        print("==================================\n9] Cancel")
+    if generate_seperator():
+        print(generate_seperator())
     try:
-        choice = int(input("--> "))
+        choice = int(input("9] Cancel\n--> "))
         if choice == 1:
             player.set_save_location(0)
-            area1()
+            start_chapter_1()
         elif choice == 2:
             player.set_save_location(1)
             choice4()
@@ -1182,7 +1182,7 @@ def start_expert_mode():
                             0)  # Create a new player object to overwrite the cached original, with basic stats.
             print("Good luck!")  # Displays some motivation.
             time.sleep(0.6)
-            area1()
+            start_chapter_1()
         elif choice == 2:
             extras_menu()
         elif choice == 3:
@@ -1237,11 +1237,8 @@ def save_file_incompatible(filename, extra_feature):   # Allow the player to con
 
 def show_save_preview(player):                  # This function generates a clean, compact save file preview that
     global basic_graphics_enabled, classic_theme_enabled   # consolidates all the main info (progress, stats, etc...) into
-    if not basic_graphics_enabled and not classic_theme_enabled:  # a neat format for the player to read. The preview is shown
-        print("\n█ SAVE FILE INFO: ░▒▒█████████████")  # before loading or erasing a save file.
-    else:
-        print("==================================")
-    print("PLAYER STATS:")
+    print(generate_header('SAVE FILE INFO'))  # a neat format for the player to read. The preview is shown
+    print("PLAYER STATS:")                  # before loading or erasing a save file.
     print("Name: %s" % player.get_name())
     print("Attack Damage: %d" % player.get_attack())
     print("Health: %i/%i" % (player.get_health(), player.get_max_health()))
@@ -1289,10 +1286,8 @@ def show_save_preview(player):                  # This function generates a clea
         print("- Expert Mode is complete.")
     else:
         print("* No achievements have been unlocked *")
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████")
-    else:
-        print("==================================")
+    if generate_seperator():
+        print(generate_seperator())
 
 
 def ask_load_save(filename, extra_feature):
@@ -1367,10 +1362,8 @@ def load(extra_feature):
         print("Please select a save file to play Expert Mode with:")
     for slot_info in slots:                 # Output slot info for each save slot.
         display_save_slot_info(slot_info)
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████")
-    elif basic_graphics_enabled and classic_theme_enabled:
-        print("==================================")
+    if generate_seperator():
+        print(generate_seperator())
     try:
         choice = int(input("4] Cancel\n--> "))
         if 1 <= choice <= 3:
@@ -1403,6 +1396,7 @@ def save_success():
                 return
         elif continue2 == 2:
             print("Returning to menu...\n")
+            reset_temp_variables()    # Reset the defeated enemies list.
             menu()
         else:
             invalid_selection_message()
@@ -1413,11 +1407,14 @@ def save_success():
 
 
 def load_save_data(slot_filename):
+    # This function is responsible for accessing save files stored locally. It accesses the relevant file (determined
+    # by the parameter slot_filename), and returns data.
     try:
         with open(str(slot_filename), 'rb') as f:
             player_name, save_location, damage, max_health, health, game_beaten, expert_mode_beaten, inventory, defensive_items = pickle.load(f)
             retrieved_data = player_name, save_location, damage, max_health, health, game_beaten, expert_mode_beaten, inventory, defensive_items
-            return retrieved_data, False, False
+            # Data is returned in this format - retrieved data, is_corrupt, is_incompatible
+            return retrieved_data, False, False     # Return the data as a tuple, and don't raise any flags which would indicate an error.
     except FileNotFoundError:
         return None, False, False   # Return 'none', so the game can handle a non-existent save file.
     except EOFError and pickle.UnpicklingError as e:
@@ -1482,6 +1479,8 @@ def display_save_slot_info(slot_info):
 
 
 def save_game():
+    # The menu that allows a player to save a game to a slot. Note that this function doesn't handle the actual saving
+    # process, that's all done by the function save_to_slot.
     global debug, basic_graphics_enabled, disableOverwrite, postGameSave, skip_overwrite_confirmation
     slots = [
         {'number': 1, 'filename': 'data/savedata.dat'},
@@ -1491,12 +1490,10 @@ def save_game():
     print(generate_header("SAVE GAME"))
     for slot_info in slots:
         display_save_slot_info(slot_info)
-    if not basic_graphics_enabled:
-        print("██████████████████████████████████\n4] Cancel")
-    else:
-        print("===============================\n4] Cancel")
+    if generate_seperator():
+        print(generate_seperator())
     try:
-        choice = int(input("--> "))
+        choice = int(input("4] Cancel\n--> "))
         if 1 <= choice <= 3:
             slot_info = next((slot for slot in slots if slot['number'] == choice), None)
 
@@ -1535,9 +1532,10 @@ def save_game():
 
 
 def ask_save():
-    global mute_audio, firstSaveRequest, player
-    global area
+    global mute_audio, player
+    global enemy_ID
     global have_credits_rolled, gameBeat, expert_mode_enabled
+    reset_temp_variables()
     if expert_mode_enabled and have_credits_rolled:   # If expert mode is enabled and the credits have rolled, then expert
         player.completed_expert_mode()                # mode is complete!
         restore_cached_stats()
@@ -1574,8 +1572,8 @@ def ask_save():
         return
 
 
-def post_creditsAutosave():
-    global postGameSave
+def post_creditsAutosave(): # I'm gonna be real, I think this is a legacy function but the game seems to have issues whenever
+    global postGameSave     # I try to remove it. So, I've decided to do the ultimate programmer move and not touch it for now.
     save_file = 'savedata3.dat'
     if postGameSave == 1:
         save_file = 'savedata.dat'
@@ -1609,7 +1607,7 @@ def pre_game_multichoice():
     try:
         choice = int(input("1] Begin!\n2] Change Name\n3] Quit\n--> "))
         if choice == 1:
-            area1()
+            start_chapter_1()
         elif choice == 2:
             change_name_input()
             pre_game_multichoice()
@@ -1623,28 +1621,28 @@ def pre_game_multichoice():
 
 
 def stats():
-    global area, player
+    global enemy_ID, player
     print(generate_header('YOUR STATS'))
     print("Name: "+str(player.get_name())+"\nDefence: "+str(player.get_health())+"/"+str(player.get_max_health())+"\nAttack Damage: "+str(player.get_attack()))
     time.sleep(1)
     savePoint = player.get_save_location()
-    if savePoint == 0 and area == 0:
+    if savePoint == 0 and enemy_ID == 0:
         pre_game_multichoice()
-    if savePoint == 0 and area == 1:
+    if savePoint == 0 and enemy_ID == 1:
         second_choice_alternate()
     elif savePoint == 1:
         choice4()
     elif savePoint == 2:
         chapter_3_choose_direction()
-    elif area == 1:
+    elif enemy_ID == 1:
         second_choice_alternate()
-    elif area == 2:
+    elif enemy_ID == 2:
         chapter_3_choose_direction()
-    elif area == 4:
+    elif enemy_ID == 4:
         chapter_4_high_rank_defeated()
-    elif area == 6:
+    elif enemy_ID == 6:
         courtyard_guard_defeated()
-    elif area == 7:
+    elif enemy_ID == 7:
         chapter_7_split()
 
 
@@ -1666,7 +1664,8 @@ def stats_input_ask():
 
 
 def check_name_validity(entered_name):  # A simple function to check if an entered name is valid.
-    if entered_name == "" or entered_name == " ":
+    first_character = entered_name[0]   # Invalid names start with a blank character.
+    if first_character == " ":
         return False    # Return False - prompt the player to choose a different name.
     else:
         return True     # Return True if the name is valid.
@@ -1736,12 +1735,10 @@ def inventory(enemy_type, enemy_object, battle_logic, audio_lockout):
         print(f"3] Smokescreen x{smokescreen_quantity}")
     else:
         print("3] ???")
-    if not basic_graphics_enabled:
-        print("██████████████████████████████████\n4] Close Inventory")
-    else:
-        print("===============================\n4] Close Inventory")
+    if generate_seperator():
+        print(generate_seperator())
     try:
-        use_item = int(input("--> "))
+        use_item = int(input("4] Close Inventory\n--> "))
     except ValueError:
         print("\nPlease select a valid option.")
         inventory(enemy_type, enemy_object, battle_logic, audio_lockout)
@@ -1768,7 +1765,7 @@ def inventory(enemy_type, enemy_object, battle_logic, audio_lockout):
             print("\nYou use this to your advantage, and slip away unharmed!")
             time.sleep(1)
             battle_logic.stop_music()   # Halt playback of the battle music.
-            player.use_smokescreen(area)
+            player.use_smokescreen(enemy_ID)
         else:
             print("\nYou can't use that item here!")
             inventory(enemy_type, enemy_object, battle_logic, audio_lockout)
@@ -1796,11 +1793,12 @@ def search_chest(chest_contents):   # This function is called every time the pla
             else:
                 print(item_object.get_basic_sprite())
             print(item_object.get_item_description())
-            player.update_inventory(str(chest_contents))    # Append the player's inventory with the found item.
+            if chest_contents.lower() != 'key' and chest_contents.lower() != 'loaf of bread':    # Don't add single use items to the inventory.
+                player.update_inventory(str(chest_contents))    # Append the player's inventory with the found item.
             chest_searched = True   # The function returns True if the player takes the item.
             return chest_searched
         elif choice == 2:
-            print("\nYou chose not to search the chest.")
+            print("\nYou chose not to loot the chest.")
             return chest_searched
         else:
             print("\nPlease choose a valid option.")
@@ -1836,7 +1834,7 @@ def expert_checkpoint_restart():
         if choice == 1:
             player.grant_default_inventory()    # Reset inventory items
             print("\nGood luck!")
-            area1()
+            start_chapter_1()
         elif choice == 2:
             player = player_expert_cache    # Return the player's original stats.
             print("\nAll of your previous stats and items have been returned. Better luck next time!")
@@ -1850,6 +1848,7 @@ def expert_checkpoint_restart():
 
 def game_over():
     global basic_graphics_enabled, expert_mode_enabled, checkedHyperPotion
+    reset_temp_variables()  # Reset defeated enemies list, so that previously defeated enemies can be fought again.
     checkedHyperPotion = False
     if not mute_audio:
         pygame.mixer.music.load("sfx/gameover.ogg")
@@ -1891,7 +1890,7 @@ def chapter_5_chest():
                 chapter_5_corridor()
             else:
                 searchedChest5 = False
-                print("\nYou did not take the smokescreen. You return to the previous area empty-handed.")
+                print("\nYou did not take the smokescreen. You return to the previous enemy_ID empty-handed.")
                 chapter_5_corridor()
         elif choice == 2:
             print("You opt not to search the chest.")
@@ -2076,27 +2075,27 @@ def defeated_juniper():
 
 
 def stats_warp():   # This function is responsible for placing the player back in the correct section of the game after
-    global player, area     # viewing stats.
+    global player, enemy_ID     # viewing stats.
     save_location = player.get_save_location()
-    if save_location == 0 and area == 0:
+    if save_location == 0 and enemy_ID == 0:
         pre_game_multichoice()
-    elif save_location == 0 and area == 1:
+    elif save_location == 0 and enemy_ID == 1:
         second_choice_alternate()
     elif save_location == 1:
         choice4()
     elif save_location == 2:
         chapter_3_choose_direction()
-    elif area == 1:
+    elif enemy_ID == 1:
         second_choice_alternate()
-    elif area == 2:
+    elif enemy_ID == 2:
         chapter_3_choose_direction()
-    elif area == 3:
+    elif enemy_ID == 3:
         chapter_3_defeated_first_guard()
-    elif area == 4:
+    elif enemy_ID == 4:
         chapter_4_high_rank_defeated()
-    elif area == 6:
+    elif enemy_ID == 6:
         courtyard_guard_defeated()
-    elif area == 7:
+    elif enemy_ID == 7:
         chapter_7_split()
 
 
@@ -2169,7 +2168,8 @@ def obtain_dropped_item(sprite, item_description, item_name, item_attack_increme
 
 
 def enemy_defeated(enemy_type, enemy_object, battle_logic, audio_lockout):  # Logic after the player wins battles.
-    global basic_graphics_enabled, player
+    global basic_graphics_enabled, player, enemies_defeated, enemy_ID
+    enemies_defeated.append(enemy_ID)
     player_held_defensive_items = player.get_defensive_items()
     if enemy_type == 'guard' or enemy_type == 'high_rank_guard':
         enemy_item = enemy_object.get_held_item()
@@ -2369,7 +2369,7 @@ def fight_enemy(enemy_type, enemy_object, battle_logic, audio_lockout):
 
 
 def encounter_enemy(enemy_type):                   # The encounter_enemy function takes the enemy_type as a parameter, and displays
-    global basic_graphics_enabled, expert_mode_enabled, area  # the appropriate character artwork. There are two sprites; one for normal gameplay,
+    global basic_graphics_enabled, expert_mode_enabled, enemy_ID  # the appropriate character artwork. There are two sprites; one for normal gameplay,
     enemy_encounter_message = "default"            # and one for players with Basic Graphics mode enabled. The global variable
     enemy_sprite = "default"                       # basic_graphics_enabled is used to choose the correct sprite. It also initialises the
     if enemy_type == 'juniper' or enemy_type == 'juniper_phase_two' or enemy_type == 'juniper_phase_three':     # enemy as an object.
@@ -2529,24 +2529,24 @@ def encounter_enemy(enemy_type):                   # The encounter_enemy functio
         | \     / |
         | |     | |
       <\\\)     (///>"""
-        # Guard init here; this uses the global variable 'area' to determine the power of the guard.
+        # Guard init here; uses the global variable 'enemy_ID' to determine the stats of the guard.
         enemy_encounter_message = "You are challenged by a guard!"
         battle_logic = BattleLogic('guard', 'sfx/battle.ogg')
-        if area == 1:
+        if enemy_ID == 1:
             enemy_object = Enemy("GUARD", 5, 20, 20, "Wooden Spear")
-        elif area == 2:
+        elif enemy_ID == 2:
             enemy_object = Enemy("GUARD", 5, 20, 20, "Wooden Shield")
-        elif area == 3:
+        elif enemy_ID == 3:
             enemy_object = Enemy("GUARD", 5, 20, 20, "Loaf of Bread")
-        elif area == 4:
+        elif enemy_ID == 4:
             enemy_object = Enemy("GUARD", 5, 20, 20, "Rusty Sword")
-        elif area == 5:
+        elif enemy_ID == 5:
             enemy_object = Enemy("GUARD", 5, 20, 20, "Hyper Potion")
-        elif area == 6:
+        elif enemy_ID == 6:
             enemy_object = Enemy("GUARD", 5, 20, 20, "Rusty Chestplate")
-        elif area == 7:
+        elif enemy_ID == 7:
             enemy_object = Enemy("GUARD", 5, 20, 20, "Healing Potion")
-        elif area == 8:
+        elif enemy_ID == 8:
             enemy_object = Enemy("GUARD", 5, 20, 20, "Healing Potion")
     elif enemy_type == 'high_rank_guard':
         if not basic_graphics_enabled:
@@ -2687,7 +2687,6 @@ def chapter_8_choice():
 def start_chapter_8():
     time.sleep(0.5)
     global basic_graphics_enabled, diedToJuniper, playerMaxHealth, healingPotion, healingpotionQuantity
-    chapterEightHealingQuantity = 0
     if not basic_graphics_enabled:
         try:
             print("\n█▒░ Chapter Eight: Finale ░▒█")
@@ -2702,7 +2701,7 @@ def start_chapter_8():
     print("\nAfter what feels like an age of walking, you freeze.")
     time.sleep(1.5)
     print(
-        "\nA huge wooden door looms above you. Torches either side cast an eerie flickering glow over the area around you.")
+        "\nA huge wooden door looms above you. Torches either side cast an eerie flickering glow over the enemy_ID around you.")
     time.sleep(1.5)
     print("\nYou peer around, taking in this new morbid environment. You notice a chest to the left side of the door.")
     time.sleep(1.5)
@@ -2715,12 +2714,12 @@ def start_chapter_8():
         time.sleep(1.5)
         print("\nYou make your way over to the shiny object, before stooping to get a closer look.")
         time.sleep(1.5)
-        if playerMaxHealth == 20:
-            chapterEightHealingQuantity = 5
+        if player.get_health() == 20:
+            discover_healing_potion_amount = 5
         else:
-            chapterEightHealingQuantity = 4
-        chapterEightHealingQuantity = chapterEightHealingQuantity - healingpotionQuantity
-        if chapterEightHealingQuantity <= 0:
+            discover_healing_potion_amount = 4
+        # discover_healing_potion_amount = discover_healing_potion_amount - player.get_inventory_items()
+        if discover_healing_potion_amount <= 0:
             print(
                 "\nThe shiny object appears to be an empty vail, which looks to have previously contained a substance of some sort.")
             time.sleep(1)
@@ -2729,12 +2728,11 @@ def start_chapter_8():
             chapter_8_choice()
         else:
             print("\n" + str(
-                chapterEightHealingQuantity) + " vials of a substance lay on the ground. They appear to contain a Potion of Healing.")
+                discover_healing_potion_amount) + " vials of a substance lay on the ground. They appear to contain a Potion of Healing.")
             time.sleep(1.5)
             print("\nYou pocket them, certain they'll come in handy...")
             time.sleep(3)
-            healingPotion = True
-            healingpotionQuantity = healingpotionQuantity + chapterEightHealingQuantity
+            player.update_inventory('healing potion', discover_healing_potion_amount)
             chapter_8_choice()
 
 
@@ -2744,7 +2742,7 @@ def chapter_7_continue_choice():
         "\nYou gaze down the long, dark corridor that lays ahead of you. A familiar feeling of terror hangs over you.")
     time.sleep(1.5)
     try:
-        choice = int(input("\nAre you ready to proceed? You can't return to this area later.\n1] Yes\n2] No\n--> "))
+        choice = int(input("\nAre you ready to proceed? You can't return to this enemy_ID later.\n1] Yes\n2] No\n--> "))
         if choice == 1:
             print("\nYou proceed onwards, into the unknown...")
             time.sleep(1)
@@ -2754,7 +2752,7 @@ def chapter_7_continue_choice():
             else:
                 start_chapter_8()
         elif choice == 2:
-            print("\nNot quite finished here just yet, you backtrack to the area where the paths originally split.")
+            print("\nNot quite finished here just yet, you backtrack to the enemy_ID where the paths originally split.")
             chapter_7_split()
         else:
             invalid_selection_message()
@@ -2770,7 +2768,7 @@ def chest7():
         if choice == 1:
             if search_chest('Healing Potion'):
                 searchedChest7mk2 = True
-                print("\nYou return to the previous area where the paths split.")
+                print("\nYou return to the previous enemy_ID where the paths split.")
                 time.sleep(1.5)
                 chapter_7_split()
             else:
@@ -2849,7 +2847,7 @@ def chapter_7_chestlegacy():
 
 
 def chapter_7_split():
-    global discoveredChapterSevenDoor, defeatedChapterSevenGuard, area, pickedUpKey, playerHealth, playerMaxHealth
+    global discoveredChapterSevenDoor, defeatedChapterSevenGuard, enemy_ID, pickedUpKey, playerHealth, playerMaxHealth
     try:
         choice = int(input("\nEventually, you come to a split; you can either go left [1] or right [2] "))
     except ValueError:
@@ -2861,7 +2859,7 @@ def chapter_7_split():
         print(
             "\nYou turn to run, but it's too late! The pounding of heavy boots reverberates around you, and you feel a hand on your shoulder...")
         time.sleep(0.8)
-        area = 7
+        enemy_ID = 7
         encounter_enemy('guard')
     elif choice == 1 and defeatedChapterSevenGuard is True:
         print("\nYou go left once again. The guard still lays defeated on the floor. You step over him.")
@@ -2872,7 +2870,7 @@ def chapter_7_split():
         print("\nBehind this door is a chest, along with a corridor that leads off into the distance.")
         time.sleep(1.5)
         print(
-            "\nThis corridor is a complete departure from the area you're in now; the walls are stony once again, and water drips from the ceiling.")
+            "\nThis corridor is a complete departure from the enemy_ID you're in now; the walls are stony once again, and water drips from the ceiling.")
         time.sleep(1.5)
         print("\nThere is also no light at all. You shudder. This corridor gives off an extremely unnerving vibe.")
         chapter_7_chest()
@@ -2896,7 +2894,7 @@ def chapter_7_split():
         time.sleep(1.5)
         print("\nYou push on it, but as expected, it doesnt budge at all. Could the key be nearby?")
         time.sleep(1.5)
-        print("\nOut of ideas for now, you return to the previous area where the paths split.")
+        print("\nOut of ideas for now, you return to the previous enemy_ID where the paths split.")
         time.sleep(1.5)
         discoveredChapterSevenDoor = True
         chapter_7_split()
@@ -3127,7 +3125,7 @@ def chapter_6_choice():
 
 
 def chapter_6_start():
-    global playerMaxHealth, playerHealth, basic_graphics_enabled
+    global basic_graphics_enabled, player
     time.sleep(1)
     if not basic_graphics_enabled:
         try:
@@ -3159,11 +3157,11 @@ def chapter_6_start():
     print("\nRegardless, you gulp it down. It's a little stale, but it provides you with some well-needed nourishment.")
     time.sleep(1)
     print("\nHealth has been fully restored!")
-    playerHealth = playerMaxHealth
+    player.restore_health()
     time.sleep(2.5)
-    print("\nHaving revitalised yourself, you peer around, examining this new area.")
+    print("\nHaving revitalised yourself, you peer around, examining this new enemy_ID.")
     time.sleep(1.5)
-    print("\nThe surrounding area is extremely dark. You squint, waiting for your eyes to adjust.")
+    print("\nThe surrounding enemy_ID is extremely dark. You squint, waiting for your eyes to adjust.")
     time.sleep(1.5)
     print(
         "\nThis room is massive; stone pillars stretch upwards towards an intricate arched ceiling. A large chandelier hangs, but is not lit.")
@@ -3180,39 +3178,37 @@ def chapter_6_start():
 
 
 def courtyard_guard_defeated():
-    global courtyardGuardKilled
-    print(
-        "\nThe guard lays defeated on the floor. Figuring he may have had another guard with him, you scurry back up the path you came from.")
-    courtyardGuardKilled = True
+    print("\nThe guard lays defeated on the floor. Figuring he may have had another guard with him, you scurry back up the path you came from.")
     courtyard()
 
 
 def chapter_5_return_courtyard():
-    global courtyardGuardKilled
+    global enemies_defeated, enemy_ID
     try:
         choice = int(input(
             "\nThere must be a way forward! Will you turn around and explore the garden some more [1], or try to force the door open [2]? "))
+        if choice == 1:
+            courtyard()
+        else:
+            print(
+                "\nYou decide to force the door open! Gathering up your little remaining strength, you take a few paces back...")
+            time.sleep(1)
+            print("\nYou dart towards the door!")
+            time.sleep(1.5)
+            print("\n*THUD!*")
+            time.sleep(1)
+            print("\nYou lie dazed on the floor. The door is still firmly shut. You curse and get back to your feet.")
+            time.sleep(1)
+            print("\nOut of ideas for now, you decide to head back to the main enemy_ID to explore further.")
+            enemies_defeated.append(enemy_ID)
+            courtyard()
     except ValueError:
+        invalid_selection_message()
         chapter_5_return_courtyard()
-    if choice == 1:
-        courtyard()
-    else:
-        print(
-            "\nYou decide to force the door open! Gathering up your little remaining strength, you take a few paces back...")
-        time.sleep(1)
-        print("\nYou dart towards the door!")
-        time.sleep(1.5)
-        print("\n*THUD!*")
-        time.sleep(1)
-        print("\nYou lie dazed on the floor. The door is still firmly shut. You curse and get back to your feet.")
-        time.sleep(1)
-        print("\nOut of ideas for now, you decide to head back to the main area to explore further.")
-        courtyardGuardKilled = True
-        courtyard()
 
 
 def chapter_5_leave_courtyard():
-    global courtyardKey, foundCourtyardDoor, player, courtyardGuardKilled, expert_mode_enabled
+    global single_use_items, player, expert_mode_enabled
     choice = int(input(
         "\nAfter some walking, you reach a door which appears to lead back inside the dungeon. Enter [1], or continue to explore the courtyard [2]? "))
     if choice == 1:
@@ -3221,7 +3217,7 @@ def chapter_5_leave_courtyard():
         time.sleep(1.5)
         print("\nYou push firmly... but it won't budge! There is a large keyhole halfway down the door.")
         time.sleep(1.5)
-        if courtyardKey is True:
+        if 'courtyard_key' in single_use_items:
             print(
                 "\nSuddenly you remember; the key you found in the fountain! Hastily, you draw the key from your pocket and insert it into the keyhole...")
             time.sleep(1.5)
@@ -3237,7 +3233,7 @@ def chapter_5_leave_courtyard():
                 ask_save()
             else:
                 chapter_6_start()
-        elif courtyardKey is False:
+        else:
             chapter_5_return_courtyard()
     else:
         print("\nYou turn around, heading back towards the fountain.")
@@ -3246,71 +3242,70 @@ def chapter_5_leave_courtyard():
 
 
 def courtyard():
-    global area, courtyardGuardKilled, courtyardKey, foundCourtyardDoor
-    if courtyardGuardKilled is False:
-        try:
-            choice = int(input(
-                "\nYou step towards the fountain. You can either follow the path left [1] or right [2]. Which way will you go?"))
-        except ValueError:
-            courtyard()
-    else:
-        try:
-            choice = int(input(
-                "\nYou return to the fountain where the paths split. Do you head down the other path [1] or examine your surroundings [2]? "))
-        except ValueError:
-            courtyard()
-    if choice == 1 and courtyardGuardKilled is False:
-        print("\nYou head left! Uncertain, you follow the winding path through the thick overgrown bushes.")
-        time.sleep(1.8)
-        print("\nAs you progress, you begin to hear a faint sound. It sounds like... whistling?")
-        time.sleep(1.8)
-        print("\nYou carry on, eagerly listening out. The sound only grows louder as you head down the path.")
-        time.sleep(1.8)
-        print(
-            "\nAt first you thought your ears were deceiving you, but now you're certain; this isn't the sound of a bird, but rather of a person.")
-        time.sleep(1.8)
-        print(
-            "\nAbruptly, the path ends. You observe your surroundings and freeze. A stone bench lays a few metres ahead. Here, a guard is sat with his back turned to you.")
-        time.sleep(1.8)
-        print(
-            "\nYou begin to back away. If you can just make it out of the guard's general whereabouts you might be able to slip away...")
-        time.sleep(1.8)
-        print(
-            "\nYour heart sinks as the guard turns his head... and makes eye contact with you. With a startled yell, he picks up his weapon and approaches...")
-        courtyardGuardKilled = False
-        time.sleep(3)
-        area = 6
-        encounter_enemy('guard')
-    elif choice == 2 and courtyardGuardKilled is False:
-        print("\nYou go right! Hesitantly, you stick to the path through the overgrown gardens.")
-        time.sleep(0.9)
-        chapter_5_leave_courtyard()
-    elif choice == 1 and courtyardGuardKilled is True:
-        print("\nYou head down the other path! ")
-        time.sleep(0.9)
-        chapter_5_leave_courtyard()
-    elif choice == 2 and courtyardKey is False and courtyardGuardKilled is True:
-        print("\nYou peer around, wondering when this place was last used. ")
-        time.sleep(0.9)
-        print(
-            "\nBut wait! Out of the corner of your eye, at the base of the fountain, you think you see something gleaming.")
-        time.sleep(0.9)
-        print("\nYou inch closer, and begin to rummage through the thick undergrowth...")
-        time.sleep(1.2)
-        print("\n...And you unearth a key! You pocket it, certain it'll come in handy later.")
-        courtyardKey = True
-        time.sleep(1.5)
-        print(
-            "\nYou also notice something engraved into the stone of the fountain. It's a little hard to read, but it says: 'Only when \nthe light and the darkness is revealed will the path forward present itself.'")
-        time.sleep(1)
-        print("\n...")
-        time.sleep(1)
-        print("\nWhat could that possibly mean?")
+    global enemy_ID, courtyardKey, foundCourtyardDoor, enemies_defeated, single_use_items
+    choice_message = "\nYou return to the fountain where the paths split. Do you head down the other path [1] or examine your surroundings [2]? "
+    if enemy_ID not in enemies_defeated:
+        choice_message = "\nYou step towards the fountain. You can either follow the path left [1] or right [2]. Which way will you go? "
+    try:
+        choice = int(input(choice_message))
+        if choice == 1:
+            if enemy_ID not in enemies_defeated:
+                print("\nYou head left! Uncertain, you follow the winding path through the thick overgrown bushes.")
+                time.sleep(1.8)
+                print("\nAs you progress, you begin to hear a faint sound. It sounds like... whistling?")
+                time.sleep(1.8)
+                print("\nYou carry on, eagerly listening out. The sound only grows louder as you head down the path.")
+                time.sleep(1.8)
+                print(
+                "\nAt first you thought your ears were deceiving you, but now you're certain; this isn't the sound of a bird, but rather of a person.")
+                time.sleep(1.8)
+                print(
+                "\nAbruptly, the path ends. You observe your surroundings and freeze. A stone bench lays a few metres ahead. Here, a guard is sat with his back turned to you.")
+                time.sleep(1.8)
+                print(
+                "\nYou begin to back away. If you can just make it out of the guard's general whereabouts you might be able to slip away...")
+                time.sleep(1.8)
+                print(
+                "\nYour heart sinks as the guard turns his head... and makes eye contact with you. With a startled yell, he picks up his weapon and approaches...")
+                time.sleep(3)
+                enemy_ID = 6
+                encounter_enemy('guard')
+            else:
+                print("\nYou head down the other path! ")
+                time.sleep(0.9)
+                chapter_5_leave_courtyard()
+        elif choice == 2:
+            if enemy_ID not in enemies_defeated:
+                print("\nYou go right! Hesitantly, you stick to the path through the overgrown gardens.")
+                time.sleep(0.9)
+                chapter_5_leave_courtyard()
+            elif enemy_ID in enemies_defeated and 'courtyard_key' in single_use_items:
+                print(
+                    "\nYou once again observe your surroundings... certain nothing is left to be discovered, you focus your attention back to your next move.")
+                courtyard()
+            else:
+                print("\nYou peer around, wondering when this place was last used. ")
+                time.sleep(0.9)
+                print(
+                    "\nBut wait! Out of the corner of your eye, at the base of the fountain, you think you see something gleaming.")
+                time.sleep(0.9)
+                print("\nYou inch closer, and begin to rummage through the thick undergrowth...")
+                time.sleep(1.2)
+                print("\n...And you unearth a key! You pocket it, certain it'll come in handy later.")
+                single_use_items.append('courtyard_key')
+                time.sleep(1.5)
+                print(
+                    "\nYou also notice something engraved into the stone of the fountain. It's a little hard to read, but it says: 'Only when \nthe light and the darkness is revealed will the path forward present itself.'")
+                time.sleep(1)
+                print("\n...")
+                time.sleep(1)
+                print("\nWhat could that possibly mean?")
+                courtyard()
+        else:
+            invalid_selection_message()
+    except ValueError:
         courtyard()
-    elif choice == 2 and courtyardKey is True and courtyardGuardKilled is True:
-        print(
-            "\nYou once again observe your surroundings... certain nothing is left to be discovered, you focus your attention back to your next move.")
-        courtyard()
+
 
 def chapter_5_corridor():
     choice = int(input("Do you head left [1], or venture right instead [2]? Both passages look the same. "))
@@ -3338,7 +3333,7 @@ def chapter_5_corridor():
             "snaking up from between the cracks. In the middle of the garden, a crumbling fountain stands covered in ivy and moss. Two paths branch \naround the fountain, heading")
         time.sleep(0.5)
         print(
-            "deeper into the garden in each direction. A large, crumbling stone wall lines the perimeter of the area.")
+            "deeper into the garden in each direction. A large, crumbling stone wall lines the perimeter of the enemy_ID.")
         time.sleep(2.5)
         print(
             "\nConfident that there are no guards lurking, you take a step out into the abandoned garden. You take a gulp of breath air; \nwhich only seems to re-invigorate you further.")
@@ -3346,8 +3341,9 @@ def chapter_5_corridor():
 
 
 def chapter_5_start():
-    global basic_graphics_enabled
+    global basic_graphics_enabled, enemy_ID
     time.sleep(3)
+    enemy_ID = 6
     if not basic_graphics_enabled:
         try:
             print("\n█▒░ Chapter Five: A Breath Of Fresh Air ░▒█")
@@ -3373,49 +3369,50 @@ def chapter_5_start():
 
 def chapter_4_find_exit():
     global player, expert_mode_enabled
-    global findExit
-    findExit = True
-    choice = int(
-        input("\nYou must find a way forwards! [1] To continue up the corridor, [2] to return back to the closet."))
-    if choice == 1:
-        chapter_4_discover_chest()
-    elif choice == 2:
-        print("\nYou backtrack towards the closet at the end of the corridor! ")
-        time.sleep(1.2)
-        print("\nAs you approach the entrance to the closet, you step inside in order to get a better view of things.")
-        time.sleep(1.2)
-        print(
-            "\nUpon stepping into the closet, you immediately notice something you hadn't before; a thick, wooden trapdoor protruding slightly above a pile of debris on the floor!")
-        time.sleep(2)
-        print("\nTensely, you kick aside the rubble on the floor...")
-        time.sleep(1.2)
-        print(
-            "\nOnly to discover a heavy iron padlock keeping the trapdoor strongly wedged shut. You groan, only to remember the key you previously acquired!")
-        time.sleep(1.3)
-        print("\nNervously, you crouch down and insert the key into the padlock. You begin to turn the key...")
-        time.sleep(2)
-        print("\n*CLUNK!*")
-        time.sleep(2)
-        print("\nPhew! You take a deep breath as the lock releases it's grip on the trapdoor")
-        time.sleep(1.2)
-        print(
-            "\nAs soon as you begin to lift the rotten trapdoor, the first thing you notice is a strong, musty odour emanating from the pit in the stony floor")
-        time.sleep(2)
-        print(
-            "\nFighting the odour, you push the trapdoor open, revealing a narrow, spiral staircase leading down. With no other options, you begin to descend...")
-        player.set_save_location(4)
-        if not expert_mode_enabled:
-            ask_save()
+    try:
+        choice = int(
+            input("\nYou must find a way forwards! [1] To continue up the corridor, [2] to return back to the closet."))
+        if choice == 1:
+            chapter_4_discover_chest()
+        elif choice == 2:
+            print("\nYou backtrack towards the closet at the end of the corridor! ")
+            time.sleep(1.2)
+            print("\nAs you approach the entrance to the closet, you step inside in order to get a better view of things.")
+            time.sleep(1.2)
+            print(
+                "\nUpon stepping into the closet, you immediately notice something you hadn't before; a thick, wooden trapdoor protruding slightly above a pile of debris on the floor!")
+            time.sleep(2)
+            print("\nTensely, you kick aside the rubble on the floor...")
+            time.sleep(1.2)
+            print(
+                "\nOnly to discover a heavy iron padlock keeping the trapdoor strongly wedged shut. You groan, only to remember the key you previously acquired!")
+            time.sleep(1.3)
+            print("\nNervously, you crouch down and insert the key into the padlock. You begin to turn the key...")
+            time.sleep(2)
+            print("\n*CLUNK!*")
+            time.sleep(2)
+            print("\nPhew! You take a deep breath as the lock releases it's grip on the trapdoor")
+            time.sleep(1.2)
+            print(
+                "\nAs soon as you begin to lift the rotten trapdoor, the first thing you notice is a strong, musty odour emanating from the pit in the stony floor")
+            time.sleep(2)
+            print(
+                "\nFighting the odour, you push the trapdoor open, revealing a narrow, spiral staircase leading down. With no other options, you begin to descend...")
+            player.set_save_location(4)
+            if not expert_mode_enabled:
+                ask_save()
+            else:
+                chapter_5_start()
         else:
-            chapter_5_start()
+            raise ValueError
+    except ValueError:
+        invalid_selection_message()
+        chapter_4_find_exit()
 
 
 def chapter_4_high_rank_defeated():
-    global discoveredPadlock, highRank, expert_mode_enabled
+    global single_use_items, expert_mode_enabled
     global player
-    global debug
-    if highRank is True:
-        highRank = False
     time.sleep(2)
     print("\nYou have overcome the challenge and defeated the High Ranking guard!")
     time.sleep(1.3)
@@ -3424,7 +3421,7 @@ def chapter_4_high_rank_defeated():
     print(
         "\nCautiously, you glance down to where you think you saw the shimmer, only to discover a large, silver key laying beside the guard! He must have dropped it when he fell!")
     time.sleep(1.2)
-    if discoveredPadlock is True:
+    if 'chapter_4_padlock' in single_use_items:
         print(
             "\nWith shaking hands, you pick up the key dropped by the guard. Could this be the key needed to unlock the trapdoor and forge yet another path onward?")
         time.sleep(2)
@@ -3442,8 +3439,6 @@ def chapter_4_high_rank_defeated():
         print(
             "\nFighting the odour, you push the trapdoor open, revealing a narrow, spiral staircase leading down. With no other options, you begin to descend...")
         player.set_save_location(4)
-        if debug != 0:
-            print(savePoint)
         if not expert_mode_enabled:
             ask_save()
         else:
@@ -3454,12 +3449,12 @@ def chapter_4_high_rank_defeated():
 
 
 def chest2():
-    global searchedChest2
+    global single_use_items
     try:
         choice = int(input("\nAll hope is not lost, however. In the corner of the room, you spot a decrepit wooden chest. Search it? ([1] Yes, [2] No) "))
-        if choice == 1 and not searchedChest2:
+        if choice == 1 and 'chest_2' not in single_use_items:
             if search_chest("Healing Potion"):
-                searchedChest2 = True
+                single_use_items.append('chest_2')
                 closet()
             else:
                 print("\nYou decide not to take the Potion of Healing, and return to the previous area.")
@@ -3467,7 +3462,7 @@ def chest2():
         elif choice == 2:
             print("\nYou chose not to search the chest.")
             closet()
-        elif choice == 1 and searchedChest2:
+        elif choice == 1 and 'chest_2' in single_use_items:
             print("\nThis chest has already been searched, and there is no loot remaining.")
             closet()
         else:
@@ -3478,7 +3473,7 @@ def chest2():
 
 
 def pre_high_rank_fight():
-    global area
+    global enemy_ID
     time.sleep(1)
     try:
         choice = int(input("\nDo you attempt to take on the guard [1]? Or return to the previous area in the hopes you'll find something to aid you in the battle [2]? "))
@@ -3487,7 +3482,7 @@ def pre_high_rank_fight():
         pre_high_rank_fight()
     if choice == 1:
         print("\nYou approach the menacing-looking guard, ready for combat...")
-        area = 4
+        enemy_ID = 4
         encounter_enemy('high_rank_guard')
     elif choice == 2:
         print(
@@ -3497,8 +3492,9 @@ def pre_high_rank_fight():
         print("\nI don't understand.")
         pre_high_rank_fight()
 
+
 def closet():
-    global discoveredPadlock
+    global single_use_items
     try:
         choice = int(input(
             "\nDo you inspect the empty room further [1], or backtrack and try to find a different path forward [2]? "))
@@ -3515,7 +3511,7 @@ def closet():
         print(
             "...Only to discover it's being held firmly shut with a rusty iron padlock. You curse, then scramble to your feet. There must be another path forward!")
         time.sleep(1)
-        discoveredPadlock = True
+        single_use_items.append('chapter_4_padlock')
         chest2()
     elif choice == 2:
         print(
@@ -3533,32 +3529,29 @@ def closet():
         print("\nI don't understand.")
         closet()
 
+
 def chapter_4_discover_door():
-    global gotKey
-    global foundDoor
-    global damage
+    global single_use_items
     print(
         "After a few minutes of advancing down the dim corridor, you reach what appears to be a blockade; a thick, rusty iron door looms above you.")
     time.sleep(1)
     print(
         "\nThis door looks too strong to be able to force open, besides, any loud noise could alert any nearby guards to your presence!")
     time.sleep(1)
-    if gotKey == False and foundDoor == False:
+    if 'chapter_4_key' not in single_use_items and 'chapter_4_door' not in single_use_items:
         print(
             "\nA tiny keyhole situated in the middle of the huge door is the only point light from the other side seeps through. Perhaps if \nyou could find the key, you'd be able to slip through unnoticed...")
-        foundDoor = True
+        single_use_items.append('chapter_4_door')
         time.sleep(1.2)
-        print("\nOut of ideas for now, you head back up the corridor, back to the previous area.\n")
+        print("\nOut of ideas for now, you head back up the corridor, back to the previous enemy_ID.\n")
         chapter_4_split()
-    elif gotKey == False and foundDoor == True:
-        print(
-            "\nThat keyhole must be the path forward! Maybe if you carried on searching, maybe you'd find something...")
+    elif 'chapter_4_key' not in single_use_items and 'chapter_4_door' in single_use_items:
+        print("\nThat keyhole must be the path forward! Maybe if you carry on searching, you'll find something...")
         time.sleep(1)
         print("\nOut of ideas, you head back up the corridor, back to the previous area.\n")
         chapter_4_split()
-    elif gotKey == True:
-        print(
-            "\nSuddenly, you remember; the key from the chest you've just looted! Hand shaking in anticipation, you raise they key to the lock and turn...")
+    elif 'chapter_4_key' in single_use_items:
+        print("\nSuddenly, you remember; the key from the chest you've just looted! Hand shaking in anticipation, you raise they key to the lock and turn...")
         time.sleep(1.5)
         print("\n*CLICK!*")
         time.sleep(1)
@@ -3576,36 +3569,23 @@ def chapter_4_discover_door():
 
 
 def chapter_4_discover_chest():
-    global gotKey
-    try:
-        search = int(input(
-            "\nEventually, you reach the end of the corridor. A lone wooden chest lays forlorn and forgotten in a corner. Search it? [1] = yes, [2] = no "))
-    except ValueError:
-        print("\nBad input; only integers can be entered!\n")
-        chapter_4_discover_chest()
-    if search == 1 and gotKey == False:
-        print("\nYou rummage around inside of the chest! You dig for any useful items...")
-        time.sleep(1.5)
-        print("\n..And you uncover a rusty key!")
-        time.sleep(1.5)
-        gotKey = True
+    global player, single_use_items
+    if 'chapter_4_key' in single_use_items:
+        print("\nThis chest has already been searched, and there is no loot remaining. Disappointed, you  return back to the previous area. \n")
+        chapter_4_split()
+    if search_chest('key'):
+        single_use_items.append('chapter_4_key')
+        print("\nYou pocket the key hastily, as something else in the chest catches your eye...")
+        time.sleep(1)
         print("\nYou also reveal a stale loaf of bread. Starving, you gulp it down without a second thought.")
-        time.sleep(0.6)
-        print("\nHealth has been fully restored!")
-        playerHealth = playerMaxHealth
+        player.restore_health()
         time.sleep(1.5)
         print(
             "\nSatisfied you've collected all of the items that may become useful, you close the chest and return to the previous area at the bottom of the stairs.\n")
         chapter_4_split()
-    elif search == 2:
+    else:
         print("\nYou did not search the chest. You swiftly head back up the corridor you just came down. \n")
         chapter_4_split()
-    elif search == 1 and gotKey == True:
-        print(
-            "\nThis chest has already been searched, and there is no loot remaining. Disappointed, you  return back to the previous area. \n")
-        chapter_4_split()
-    else:
-        chapter_4_discover_chest()
 
 
 def chapter_4_split():
@@ -3621,6 +3601,7 @@ def chapter_4_split():
         print(
             "\nYou turn left! You hesitantly walk down the ominous corridor, a few flickering torches on the wall your only source of light.")
         time.sleep(1.3)
+        print("\nEventually, you reach the end of the corridor. A lone wooden chest lays forlorn and forgotten in a corner.")
         chapter_4_discover_chest()
     elif choice == 2:
         print("\nYou head right! Heart racing, you tread cautiously down the dingy corridor.\n")
@@ -3639,15 +3620,12 @@ def chapter_4_start():
             print("\n== Chapter Four: What Doesn't Kill You Makes You Stronger ==")
     else:
         print("\n== Chapter Four: What Doesn't Kill You Makes You Stronger ==")
-    if mute_audio != True:
+    if not mute_audio:
         pygame.mixer.music.load("sfx/thud.ogg")
         pygame.mixer.music.play(1)
-    print(" ")
-    print(" ")
     time.sleep(3)
-    print(" ")
     print(
-        "Upon re-entering, you are hit with an immense feeling of dread. Why are you doing this? Are you really willing to risk \nyour life for a load of strangers?")
+        "\n\nUpon re-entering, you are hit with an immense feeling of dread. Why are you doing this? Are you really willing to risk \nyour life for a load of strangers?")
     print(" ")
     time.sleep(2)
     print(
@@ -3659,44 +3637,34 @@ def chapter_4_start():
 
 
 def balcony():
-    global gotRope
-    global player, expert_mode_enabled
-    print("You get to the door, and without thinking, fling yourself outside...")
+    global player, expert_mode_enabled, single_use_items
+    print("\nYou get to the door, and without thinking, fling yourself outside...")
     time.sleep(3)
-    print(" ")
     print(
-        "You find yourself on a precarious balcony! The floor is made of rotting wood, and there's a sheer drop below. Looking around gives you a \nclear view of all the guards circling the perimeter of the building.")
-    print(" ")
+        "\nYou find yourself on a precarious balcony! The floor is made of rotting wood, and there's a sheer drop below. Looking around gives you a \nclear view of all the guards circling the perimeter of the building.")
     time.sleep(3)
-    print("You notice another balcony below you, which looks equally dangerous.")
-    print(" ")
+    print("\nYou notice another balcony below you, which looks equally dangerous.")
     time.sleep(3)
-    if gotRope != 0:
+    if 'chapter_3_rope' in single_use_items:
         print(
-            "Thinking fast, you remember the rope you picked up earlier. Maybe you could use this to get to the lower balcony?")
-        print(" ")
+            "\nThinking fast, you remember the rope you picked up earlier. Maybe you could use this to get to the lower balcony?")
         time.sleep(3)
         print(
-            "Hurriedly, you tie the rope around the balcony's railing, and inhale deeply. This has been your first time outdoors in ages. And it could well be \nyour last...")
-        print(" ")
+            "\nHurriedly, you tie the rope around the balcony's railing, and inhale deeply. This has been your first time outdoors in ages. And it could well be \nyour last...")
         time.sleep(3)
         print(
-            "Figuring you'd rather die this way than to the hands of those guards, you grab hold of the rope, and begin to clamber over the railing.")
-        print(" ")
+            "\nFiguring you'd rather die this way than to the hands of those guards, you grab hold of the rope, and begin to clamber over the railing.")
         time.sleep(3)
         print(
-            "As the wind ruffles through your unkempt hair, you try your hardest not to look down at the drop that would lead to certain death below...")
-        print(" ")
+            "\nAs the wind ruffles through your unkempt hair, you try your hardest not to look down at the drop that would lead to certain death below...")
         time.sleep(3)
         print(
-            "Suddenly, you feel a jolt through the rope. You look up and see a guard attempting to cut through the rope with a switchblade! Panicking, you \nbegin to climb down the rope faster...")
-        print(" ")
+            "\nSuddenly, you feel a jolt through the rope. You look up and see a guard attempting to cut through the rope with a switchblade! Panicking, you \nbegin to climb down the rope faster...")
         time.sleep(3)
         print(
-            "Suddenly, you hear a triumphant yell from above as you begin to plummet. That guard managed to cut through the rope! This is it. The \nend... you shut your eyes and brace for impact.")
-        print(" ")
+            "\nSuddenly, you hear a triumphant yell from above as you begin to plummet. That guard managed to cut through the rope! This is it. The \nend... you shut your eyes and brace for impact.")
         time.sleep(3)
-        print("*THUD!*")
+        print("\n*THUD!*")
         time.sleep(3)
         print("...")
         time.sleep(3)
@@ -3704,38 +3672,30 @@ def balcony():
         time.sleep(3)
         print("      ...")
         time.sleep(3)
-        print("You slowly come to. Your head aches, and your bones all feel shattered. But you're alive.")
-        print(" ")
+        print("\nYou slowly come to. Your head aches, and your bones all feel shattered. But you're alive.")
         time.sleep(3)
-        print("Did you survive an almost seven storey plunge? Surely not...")
-        print(" ")
+        print("\nDid you survive an almost seven storey plunge? Surely not...")
         time.sleep(3)
         print(
-            "You slowly regain composure, and sit up to observe your surroundings. It's night time. How long had you been lying here? \nCome to think of it, where were you?")
-        print(" ")
+            "\nYou slowly regain composure, and sit up to observe your surroundings. It's night time. How long had you been lying here? \nCome to think of it, where were you?")
         time.sleep(3)
         print(
-            "Suddenly, you realize where you are. On the lower balcony. The rope lies severed next to you, a cruel reminder of the guard's brutality.")
+            "\nSuddenly, you realize where you are. On the lower balcony. The rope lies severed next to you, a cruel reminder of the guard's brutality.")
         time.sleep(3)
-        print(" ")
         print(
-            "Fighting the pain, you get up and look around. A door leads back into the dungeon. Thinking of all the innocent lives at stake, you head back inside...")
-        print(" ")
+            "\nFighting the pain, you get up and look around. A door leads back into the dungeon. Thinking of all the innocent lives at stake, you head back inside...\n")
         time.sleep(3)
         player.set_save_location(3)
-        if debug > 0:
-            print(savePoint)
         if not expert_mode_enabled:
             ask_save()
         else:
             chapter_4_start()
     else:
         print(
-            "Thinking of your next move, you suddenly remember: The rope from the dark room you hid in! That's your only ticket to escape!")
-        print(" ")
+            "\nThinking of your next move, you suddenly remember: The rope from the dark room you hid in! That's your only ticket to escape!")
         time.sleep(2)
-        print(
-            "As the foolish mistake you have made dawns on you, two burly guards burst through the door. They each grab your arms, and before you can so \nmuch as scream, they toss you off the balcony...")
+        print("\nAs the foolish mistake you have made dawns on you, two burly guards burst through the door. They each grab your arms, and before you can so \nmuch as scream, they toss you off the balcony...")
+        time.sleep(3)
         game_over()
 
 
@@ -3753,20 +3713,20 @@ def chapter_3_defeated_second_guard():
 
 
 def chapter_3_defeated_first_guard():
-    global area
+    global enemy_ID
     time.sleep(1)
     print(
         "You have defeated the first guard! As he falls to the ground having been defeated in battle, his comrade takes a defensive stance and lunges towards you.")
     time.sleep(2)
     print("\nYou ready yourself for yet another battle! The payoff better be worth the risk...")
     time.sleep(2)
-    area = 5
+    enemy_ID = 5
     encounter_enemy('guard')
 
 
 def chapter_3_hiding_choice():
     run = 0
-    global area
+    global enemy_ID
     try:
         run = int(input("""Silently, you slip out from behind the boxes. Peering your head around the door reveals the guards waiting for you at one end of the hallway. You 
 can either make a dash for the door with natural light pouring through [1], or attempt to take on the guards [2] """))
@@ -3779,14 +3739,14 @@ can either make a dash for the door with natural light pouring through [1], or a
         print(" ")
         balcony()
     else:
-        area = 3
+        enemy_ID = 3
         print("\nYou decide to take on the guards! Swiftly, you approach the first guard and prepare to battle...")
         time.sleep(2)
         encounter_enemy('guard')
 
 
 def hiding():
-    global area
+    global enemy_ID
     print(
         "You peer out from behind the boxes. Sure enough, you can hear the guards storming towards the room, calling your name mockingly.")
     print(" ")
@@ -3803,28 +3763,22 @@ def hiding():
 
 
 def chapter_3_choose_rope():
-    global gotRope
-    getRope = 0
-    print(" ")
+    global single_use_items
     try:
-        getRope = int(input(
-            "You dive behind the boxes! Feeling around the floor, you can feel a coil of rope. Pick it up? [1] for yes, [2] for no. "))
+        choice = int(input("You dive behind the boxes! Feeling around the floor, you can feel a coil of rope. Pick it up? [1] for yes, [2] for no. "))
+        if choice == 1:
+            print("\nYou've got the rope! You never know when it might prove useful...\n")
+            single_use_items.append('chapter_3_rope')
+            hiding()
+        elif choice == 2:
+            print("\nYou don't pick up the rope. You never know, it may have come in handy at some point...\n")
+            hiding()
+        else:
+            invalid_selection_message()
+            chapter_3_choose_rope()
     except ValueError:
-        print(" ")
-        print("Bad input. Only integers can be entered!")
+        invalid_selection_message()
         chapter_3_choose_rope()
-    if getRope == 1:
-        print(" ")
-        print("You've got the rope! You never know when it might prove useful...")
-        print(" ")
-        gotRope = 1
-        if debug > 0:
-            print(gotRope)
-        hiding()
-    else:
-        print(" ")
-        print("You don't pick up the rope. You never know, it may have come in handy at some point...\n")
-        hiding()
 
 
 def chapter_3_choose_hiding_spot():
@@ -3858,148 +3812,126 @@ def chapter_3_choose_hiding_spot():
 
 
 def chase():
-    global gotRope
     door = 0
     try:
-        door = float(input(
-            "Which door do you go through? [1] for the door at the end of the corridor, [2] for the door you've just noticed. Act fast! "))
+        door = int(input("Which door do you go through? [1] for the door at the end of the corridor, [2] for the door you've just noticed. Act fast! "))
+        if door == 1:
+            print(
+                "\nYou continue to run for the door at the end of the corridor! Oddly enough, the guards appear to stop just short of the end of the corridor. \nHave they given up? Surely not...")
+            time.sleep(2)
+            print("\nWithout a second thought, you fling open the door and race out...")
+            time.sleep(2)
+            print(
+                "\nOnly to find yourself standing on a precarious balcony above a sheer drop. The floor is made of rotting wood, and looks like it could \nbreak with the slightest movement.")
+            time.sleep(2)
+            print(
+                "\nYou stand there, clueless about your next move. You notice an equally rotten balcony below you. If only you had some sort of rope, \nthen you could reach it...")
+            time.sleep(2)
+            print(
+                "\nSuddenly, two strong looking guards appear in the doorway. They each grab one of your arms, and without a second thought, toss you \noff the balcony! The last thing you hear is them laughing before your world turns black...")
+            time.sleep(2)
+            game_over()
+        elif door == 2:
+            print(
+                "\nYou dive for the door on your left! This seems to throw the guards off, as they run right past the entrance!")
+            time.sleep(2)
+            print("\nTime is of the essence! Those guards will no doubt come in here looking for you! You must hide!")
+            time.sleep(1)
+            chapter_3_choose_hiding_spot()
+        else:
+            invalid_selection_message()
+            chase()
     except ValueError:
-        print(" ")
-        chase()
-    if door == 1:
-        print(" ")
-        print(
-            "You continue to run for the door at the end of the corridor! Oddly enough, the guards appear to stop just short of the end of the corridor. \nHave they given up? Surely not...")
-        print(" ")
-        time.sleep(2)
-        print("Without a second thought, you fling open the door and race out...")
-        print(" ")
-        time.sleep(2)
-        print(
-            "Only to find yourself standing on a precarious balcony above a sheer drop. The floor is made of rotting wood, and looks like it could \nbreak with the slightest movement.")
-        print(" ")
-        time.sleep(2)
-        print(
-            "You stand there, clueless about your next move. You notice an equally rotten balcony below you. If only you had some sort of rope, \nthen you could reach it...")
-        print(" ")
-        time.sleep(2)
-        print(
-            "Suddenly, two strong looking guards appear in the doorway. They each grab one of your arms, and without a second thought, toss you \noff the balcony! The last thing you hear is them laughing before your world turns black...")
-        time.sleep(2)
-        game_over()
-    elif door == 2:
-        print(" ")
-        print(
-            "You dive for the door on your left! This seems to throw the guards off, as they run right past the entrance!")
-        print(" ")
-        time.sleep(2)
-        print("Time is of the essence! Those guards will no doubt come in here looking for you! You must hide!")
-        print(" ")
-        time.sleep(1)
-        chapter_3_choose_hiding_spot()
-    else:
+        invalid_selection_message()
         chase()
 
 
 def chapter_3_discover_chest():
-    global searchedChest, expert_mode_enabled
+    global single_use_items, expert_mode_enabled
+    if 'chapter_3_chest' in single_use_items:
+        print("\nUnfortunately, this chest has previously been searched, and it is still empty. You wander back up the staircase.")
+        time.sleep(1.5)
+        chapter_3_choose_direction()
     chest_item = 'Smokescreen'
     if expert_mode_enabled:
         chest_item = 'Healing Potion'
-    try:
-        choice = int(input("\nYou reach a chest. Will you search it [1], or exit back up the stairs [2]? "))
-        if choice == 1:
-            if search_chest(chest_item):
-                searchedChest = True
-                print("\nYou head back up the stairs to evaluate the other paths forward.")
-                chapter_3_choose_direction()
-            else:
-                chapter_3_choose_direction()
-        elif choice == 2:
-            print("\nYou opt to not search the chest - you head back up the stairs.")
-            chapter_3_choose_direction()
-        else:
-            print("\nPlease select a valid option.")
-            chapter_3_discover_chest()
-    except ValueError:
-        chapter_3_discover_chest()
-
-def chapter_3_choose_direction():
-    global area, expert_mode_enabled
-    area = 2
-    global playerMaxHealth
-    global gotShield
-    global defeatedGuardOutsideConfinement
-    try:
-        wayToGo = int(input(
-            "\nYou ponder over which way to go. Will you go through the door on the right [1], the door on the left [2], or the trapdoor? [3] "))
-    except ValueError:
-        print("\nBad input. Only integers can be entered!")
-        chapter_3_choose_direction()
-    if wayToGo == 1 and defeatedGuardOutsideConfinement is False:
-        print(" ")
-        print(
-            "You decide to exit through the door on the right! As you near the door, you think you can hear rapidly approaching footsteps on the other side...")
-        print(" ")
-        time.sleep(2)
-        print(
-            "As you stand there contemplating whether this was a good choice, suddenly the door is flung open by a familiar looking \nface; it's the guard who dragged you to Solitary Confinement!")
-        print(" ")
-        time.sleep(3.5)
-        area = 2
-        encounter_enemy('guard')
-    elif wayToGo == 1 and defeatedGuardOutsideConfinement is True:
-        print(
-            "\nThe guard's body lays in the doorway. You mustn't try to get through in case more guards are on the way!\n")
-        chapter_3_choose_direction()
-    elif wayToGo == 2:
-        print(" ")
-        print(
-            "You decide on exiting through the door on the left! As you approach the heavy wooden door, your heart begins to race. What could\npossibly lurk behind this door?")
-        time.sleep(2)
-        print(" ")
-        print("Having gained enough courage, you press your palm against the door and push it open... ")
-        time.sleep(2)
-        print(" ")
-        print(
-            "As you peer around the door, you are met with a stone-walled corridor that seems to stretch on forever. A red carpet, covered\nin ominous stains, trails along the rotting wooden floor.")
-        time.sleep(2)
-        print(" ")
-        print(
-            "Upon closer inspection, you notice a door at the end of the corridor. Natural light pours in though the small gaps around the \ndoor, making this the only light source. Could this door be your ticket to freedom?")
-        print(" ")
-        time.sleep(2)
-        print(
-            "As you're pondering over your next move, you hear the sudden crash of a door being flung open behind you, as well as manic \nyelling and rapid footsteps. That guard from earlier must have returned with backup!")
-        print(" ")
-        time.sleep(2)
-        print(
-            "The chase is on! You begin to dash for the door at the end of the corridor, the guards hot on your trail!")
-        print(" ")
-        time.sleep(2)
-        print(
-            "As you near the end of the corridor, you spot a door that you hadn't previously noticed. This door looks rotten, and there's no light on the other side")
-        time.sleep(2)
-        print(" ")
-        chase()
+    if search_chest(chest_item):
+        single_use_items.append('chapter_3_chest')
+        print("\nYou head back up the stairs to evaluate the other paths forward.")
     else:
-        print(" ")
-        print(
-            "You decide to check out the hatch in the floor! You slowly lift the hatch, being careful not to make too much noise.")
-        print(" ")
-        time.sleep(2)
-        try:
-            stairs = int(input(
-                "Under the hatch, you find a staircase leading down. [1] to head down the stairs, [2] to evaluate the other options: "))
-        except ValueError:
-            chapter_3_choose_direction()
-        if stairs == 1:
+        print("\nYou trudge empty-handed back up the stony staircase.")
+    time.sleep(1)
+    chapter_3_choose_direction()
+
+
+def chapter_3_staircase():
+    try:
+        choice = int(input(
+            "\nUnder the hatch, you find a staircase leading down. [1] to head down the stairs, [2] to evaluate the other options: "))
+        if choice == 1:
             print("\nYou descend the stairs carefully, your footsteps echoing off of the cold stone walls...")
             time.sleep(1)
+            print("\nAs you reach the bottom of the stairs, you come across a rusty looking chest.")
+            time.sleep(1)
             chapter_3_discover_chest()
-        elif stairs == 2:
-            print(" ")
+        elif choice == 2:
             chapter_3_choose_direction()
+        else:
+            invalid_selection_message()
+            chapter_3_staircase()
+    except ValueError:
+        invalid_selection_message()
+        chapter_3_staircase()
+
+
+def chapter_3_choose_direction():
+    global enemy_ID, expert_mode_enabled, enemies_defeated
+    enemy_ID = 2
+    try:
+        choice = int(input(
+            "\nYou ponder over which way to go. Will you go through the door on the right [1], the door on the left [2], or the trapdoor? [3] "))
+        if choice == 1:
+            if enemy_ID in enemies_defeated:
+                print("\nThe guard's body lays in the doorway. You mustn't try to get through in case more guards are on the way!\n")
+                chapter_3_choose_direction()
+            else:
+                print("\nYou decide to exit through the door on the right! As you near the door, you think you can hear rapidly approaching footsteps on the other side...")
+                time.sleep(2)
+                print("\nAs you stand there contemplating whether this was a good choice, suddenly the door is flung open by a familiar looking \nface; it's the guard who dragged you to Solitary Confinement!")
+                time.sleep(3.5)
+                encounter_enemy('guard')
+        elif choice == 2:
+            print(
+                "\nYou decide on exiting through the door on the left! As you approach the heavy wooden door, your heart begins to race. What could\npossibly lurk behind this door?")
+            time.sleep(2)
+            print("\nHaving gained enough courage, you press your palm against the door and push it open... ")
+            time.sleep(2)
+            print(
+                "\nAs you peer around the door, you are met with a stone-walled corridor that seems to stretch on forever. A red carpet, covered\nin ominous stains, trails along the rotting wooden floor.")
+            time.sleep(2)
+            print(
+                "\nUpon closer inspection, you notice a door at the end of the corridor. Natural light pours in though the small gaps around the \ndoor, making this the only light source. Could this door be your ticket to freedom?")
+            time.sleep(2)
+            print(
+                "\nAs you're pondering over your next move, you hear the sudden crash of a door being flung open behind you, as well as manic \nyelling and rapid footsteps. A guard must have spotted you and called for backup!")
+            time.sleep(2)
+            print(
+                "\nThe chase is on! You begin to dash for the door at the end of the corridor, the guards hot on your trail!")
+            time.sleep(2)
+            print(
+                "\nAs you near the end of the corridor, you spot a door that you hadn't previously noticed. This door looks rotten, and there's no light on the other side")
+            time.sleep(2)
+            chase()
+        elif choice == 3:
+            print("\nYou decide to check out the hatch in the floor! You slowly lift the hatch, being careful not to make too much noise.")
+            time.sleep(2)
+            chapter_3_staircase()
+        else:
+            raise ValueError
+    except ValueError:
+        invalid_selection_message()
+        chapter_3_choose_direction()
+
 
 def chapter_3_start():
     global player, mute_audio, basic_graphics_enabled
@@ -4011,7 +3943,7 @@ def chapter_3_start():
             print("\n== Chapter Three: The Great Escape ==")
     else:
         print("\n== Chapter Three: The Great Escape ==")
-    if mute_audio != True:
+    if not mute_audio:
         pygame.mixer.music.load("sfx/thud.ogg")
         pygame.mixer.music.play(1)
     time.sleep(3)
@@ -4080,70 +4012,76 @@ def chapter_2_combine_items():
 
 
 def initiate_object_search():
-    global savePoint, searchedSink, searchedBed, searchedCupboard
+    global single_use_items
     time.sleep(1)
-    choice = 0
-    if searchedSink and searchedBed:
+    choice_message = "\nAfter some deliberation, you settle on three potentially useful locations to search; the small sink in the corner of the room [1], the\ncramped bed [2], or a small cupboard [3]. Which one will you examine? "
+    if 'chapter_2_rope' in single_use_items and 'chapter_2_chain' in single_use_items:
         time.sleep(1)
         chapter_2_combine_items()
-    if searchedSink or searchedCupboard or searchedBed is True:
-        try:
-            choice = int(input("\nWhere will you search next? The sink [1], the bed [2], or the cupboard [3]? "))
-        except ValueError:
+    if 'chapter_2_rope' in single_use_items or 'chapter_2_chain' in single_use_items or 'searched_chapter_2_cupboard' in single_use_items:
+        choice_message = "\nWhere will you search next? The sink [1], the bed [2], or the cupboard [3]? "
+    try:
+        choice = int(input(choice_message))
+        if choice == 1 and 'chapter_2_chain' not in single_use_items:
+            print("\nYou quietly pad over to the small sink. It's incredibly worn, with small cracks adorning the surface.")
+            time.sleep(1)
+            print(
+                "\nSuddenly, you notice the small, corroded chain which connects the plug to the basin. It's far too small to reach the keys, however\nit could come in handy when combined with something else...")
+            time.sleep(1)
+            print("\nYou silently pull the chain free, and pocket it for later use.")
+            single_use_items.append('chapter_2_chain')
             initiate_object_search()
-    else:
-        try:
-            choice = int(input(
-                "\nAfter some deliberation, you settle on three potentially useful locations to search; the small sink in the corner of the room [1], the\ncramped bed [2], or a small cupboard [3]. Which one will you examine? "))
-        except ValueError:
+        elif choice == 1 and 'chapter_2_chain' in single_use_items:
+            print("\nYou once again return to the small sink.")
+            time.sleep(1)
+            print("\nYou scan your eyes across the damaged porcelain surface, looking for anything that could help reach the keys.")
+            time.sleep(2)
+            print("\nConfident there is nothing else, you return to the center of the room and think over your other options.")
             initiate_object_search()
-    if choice == 1 and searchedSink is False:
-        print("\nYou quietly pad over to the small sink. It's incredibly worn, with small cracks adorning the surface.")
-        time.sleep(1)
-        print(
-            "\nSuddenly, you notice the small, corroded chain which connects the plug to the basin. It's far too small to reach the keys, however\nit could come in handy when combined with something else...")
-        time.sleep(1)
-        print("\nYou silently pull the chain free, and pocket it for later use.")
-        searchedSink = True
-        initiate_object_search()
-    elif choice == 2 and searchedBed is False:
-        print(
-            "\nYou make your way over to the bed. It's constructed entirely out of metal, and looks extremely durable.")
-        time.sleep(1)
-        print(
-            "\nBut wait, your eyes are suddenly drawn to something out of place. At the rear corner of the bed where two intersecting metal posts\nmeet, a rope has been tied tightly around the join.")
-        time.sleep(1)
-        print(
-            "\nUpon further inspection, the two metal posts appear to have broken; the rope must have been added in an attempt to fix the bed.")
-        time.sleep(1)
-        print(
-            "\nYou get down on your hands an knees, and attempt to untie the rope. After a brief struggle, you manage to get it free. You\ncoil it up and sling it over your shoulder.")
-        time.sleep(1)
-        searchedBed = True
-        initiate_object_search()
-    elif choice == 3 and searchedCupboard is False:
-        print("\nYou walk over to the cupboard. It's flimsy, and made entirely of rotting wood.")
-        time.sleep(1)
-        print(
-            "\nYou crouch down, and slowly open the door. You peer inside the cupboard; besides copious amounts of dust and cobwebs, the\ninside of the cupboard is entirely barren.")
-        searchedCupboard = True
-        initiate_object_search()
-    elif choice == 1 and searchedSink:
-        print(
-            "\nYou make your way back over to the sink. You quickly scan it, however you're certain you've already picked up anything useful.")
-        initiate_object_search()
-    elif choice == 2 and searchedBed:
-        print(
-            "\nYou wander back over to the bed. You look over it once more, however you're certain you've already picked up anything useful.")
-        initiate_object_search()
-    elif choice == 3 and searchedCupboard:
-        print("\nYou make your way back over to the cupboard.")
-        time.sleep(1)
-        print(
-            "\nYou peer inside once again, before reaching in with your hand in order to feel for anything that wasn't visible...")
-        time.sleep(1)
-        print(
-            "\nOnly to uncover a huge spider! You scream and flick the insect off of your hand, and it scurries away.")
+        elif choice == 2 and 'chapter_2_rope' not in single_use_items:
+            print(
+                "\nYou make your way over to the bed. It's constructed entirely out of metal, and looks extremely durable.")
+            time.sleep(1)
+            print(
+                "\nBut wait, your eyes are suddenly drawn to something out of place. At the rear corner of the bed where two intersecting metal posts\nmeet, a rope has been tied tightly around the join.")
+            time.sleep(1)
+            print(
+                "\nUpon further inspection, the two metal posts appear to have broken; the rope must have been added in an attempt to fix the bed.")
+            time.sleep(1)
+            print(
+                "\nYou get down on your hands an knees, and attempt to untie the rope. After a brief struggle, you manage to get it free. You\ncoil it up and sling it over your shoulder.")
+            time.sleep(1)
+            single_use_items.append('chapter_2_rope')
+            initiate_object_search()
+        elif choice == 3 and 'searched_chapter_2_cupboard' not in single_use_items:
+            print("\nYou walk over to the cupboard. It's flimsy, and made entirely of rotting wood.")
+            time.sleep(1)
+            print(
+                "\nYou crouch down, and slowly open the door. You peer inside the cupboard; besides copious amounts of dust and cobwebs, the\ninside of the cupboard is entirely barren.")
+            single_use_items.append('searched_chapter_2_cupboard')
+            initiate_object_search()
+        elif choice == 1 and searchedSink:
+            print(
+                "\nYou make your way back over to the sink. You quickly scan it, however you're certain you've already picked up anything useful.")
+            initiate_object_search()
+        elif choice == 2 and 'chapter_2_rope' in single_use_items:
+            print(
+                "\nYou wander back over to the bed. You look over it once more, however you're certain you've already picked up anything useful.")
+            initiate_object_search()
+        elif choice == 3 and 'searched_chapter_2_cupboard' in single_use_items:
+            print("\nYou make your way back over to the cupboard.")
+            time.sleep(1)
+            print(
+                "\nYou peer inside once again, before reaching in with your hand in order to feel for anything that wasn't visible...")
+            time.sleep(1)
+            print(
+                "\nOnly to uncover a huge spider! You scream and flick the insect off of your hand, and it scurries away.")
+            initiate_object_search()
+        else:
+            invalid_selection_message()
+            initiate_object_search()
+    except ValueError:
+        invalid_selection_message()
         initiate_object_search()
 
 
@@ -4175,7 +4113,7 @@ def chapter_2_guard_defeated():
 
 
 def chapter_2_continue_yelling():
-    global area
+    global enemy_ID
     try:
         stop = int(input("\nDo you continue to yell [1], or stop? [2] "))
     except ValueError:
@@ -4187,7 +4125,7 @@ def chapter_2_continue_yelling():
         time.sleep(1)
         print(
             "\nHe stomps back over to the cell door, fumbles with the lock, and throws the door open. He prepares for combat and lunges at you...")
-        area = 8
+        enemy_ID = 8
         encounter_enemy('guard')
     else:
         print("""\nYou stop yelling. The guard, seemingly regaining his composure, calmly walks over to the hatch and slides it shut. Your heart sinks
@@ -4300,37 +4238,40 @@ package of what appears to be food through the opening and promptly slams the ha
 
 
 def warp_debug():
-    global damage, debug, hyperPotion, hyperpotionQuantity, area, playerHealth, healingPotion, healingpotionQuantity, playerName, playerMaxHealth, player
-    funcWarp = input("\n== WARP ==\nType the location you wish to warp to, or type 'end' to quit. Upon warping to a function, debug mode will be\n"
+    global damage, debug, hyperPotion, hyperpotionQuantity, enemy_ID, playerHealth, healingPotion, healingpotionQuantity, playerName, playerMaxHealth, player
+    warp_location = input("\n== WARP ==\nType the location you wish to warp to, or type 'end' to quit. Upon warping to a function, debug mode will be\n"
                      "enabled automatically.\n\nWarp to where? ")
     if debug == 0:
         print("\n= DEBUG MODE ACTIVE =\n")
         debug = 1
     player = Player(10, 200, 200, "test", inventory={'Healing Potion': 999, 'Hyper Potion': 1, 'Smokescreen': 3},
                     defensive_items=['dummy', 'dummy2'], has_beaten_game=False, has_completed_expert_mode=False, save_location=3)    # Create a dummy player so the game doesn't crash
-    if funcWarp == "save":
+    if warp_location == "save":
         ask_save()
-    elif funcWarp == "newVer" or funcWarp == "newver":
+    elif warp_location == "newVer" or warp_location == "newver":
         ask_download_update(method_of_access=input("Method of access = "), contents=b"3.0.1")
-    elif funcWarp == "end":
+    elif warp_location == "end":
         menu()
-    elif funcWarp == 'battle':
-        choice = input("Type the class of enemy to test (case sensitive) ")
-        area = int(input("Type the value to assign to the area variable: "))
+    elif warp_location == 'battle':
+        choice = input("Type the class of enemy to test (case sensitive:) ")
+        enemy_ID = int(input("Type an int value to assign to enemy_ID: "))
         print(player.get_defensive_items())
         encounter_enemy(choice)
-    elif funcWarp == "chapter":
+    elif warp_location == "chapter":
         warp_to_chapter(save_location=int(input("Enter a value for save_location: ")))
-    elif funcWarp == "crash":
+    elif warp_location == "crash":
         handle_error(description="Sample description generated by debug_warp", e="Sample traceback")
         warp_debug()
-    elif funcWarp == "data":
-        print("\nManually running data format assistant...")
-        data_format_assistant()
+    elif warp_location == "data":
+        print("\nManually running data format daemon...")
+        data_format_daemon()
         print("Done!")
         warp_debug()
+    elif warp_location == 'chest':
+        search_chest(chest_contents=input('Enter chest contents: '))
+        warp_debug()
     else:
-        print("'" + funcWarp + "' is not a recognised function or warp location. Check spelling and try again.\n")
+        print("'" + warp_location + "' is not a recognised function or warp location. Check spelling and try again.\n")
         warp_debug()
 
 
@@ -4353,10 +4294,7 @@ def extras_music_player():
     selection = 'null'  # The filename of the track that is to be played
     friendlyname = 'not implemented'    # The name of the track in a more human-readable format
     description = 'not implemented'     # The description of the track shown on the Now Playing screen
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("\n█ MUSIC PLAYER: ░▒▒███████████████")
-    else:
-        print("\n== MUSIC PLAYER ==")
+    print(generate_header('MUSIC PLAYER'))
     print("Choose a track to listen to:")
     print("""1] Theme of DTD
 2] Theme of DTD (Beta)
@@ -4375,15 +4313,10 @@ def extras_music_player():
 15] Credits
 16] Credits (Alt. version)
 17] Curtain Call""")
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        try:
-            print("██████████████████████████████████\n18] Quit")
-        except Exception:
-            print("==================================\n18] Quit")
-    if basic_graphics_enabled is True or classic_theme_enabled is True:
-        print("==================================\n18] Quit")
+    if generate_seperator():
+        print(generate_seperator())
     try:
-        choice = int(input("--> "))
+        choice = int(input("18] Quit\n--> "))
     except ValueError:
         extras_music_player()
     if choice == 1:
@@ -4600,10 +4533,8 @@ def audio_settings():
         print("1] Unmute audio\n2] Test audio")
     else:
         print("1] Mute audio\n2] Test audio")
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████")
-    elif basic_graphics_enabled and classic_theme_enabled:
-        print("==================================")
+    if generate_seperator():
+        print(generate_seperator())
     try:
         choice = int(input("3] Cancel\n--> "))
     except ValueError:
@@ -4684,10 +4615,8 @@ def erase_save_data():
     print("Select a save file to erase:")
     for slot_info in slots:
         display_save_slot_info(slot_info)
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████")
-    elif basic_graphics_enabled and classic_theme_enabled:
-        print("==================================")
+    if generate_seperator():
+        print(generate_seperator())
     try:
         choice = int(input("4] Cancel\n--> "))
         if 1 <= choice <= 3:
@@ -4737,10 +4666,8 @@ def software_update_settings():
         auto_update_toggle = "Enable "
     print(generate_header("SOFTWARE UPDATES"))
     print("1] Check for Updates\n2] "+str(auto_update_toggle)+"Automatic Updates")
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████")
-    elif basic_graphics_enabled and classic_theme_enabled:
-        print("==================================")
+    if generate_seperator():
+        print(generate_seperator())
     try:
         choice = int(input("3] Cancel\n--> "))
     except ValueError:
@@ -4762,22 +4689,22 @@ def software_update_settings():
 
 
 def disable_basic_graphics():
-    global basic_graphics_enabled, classic_theme_enabled
+    global basic_graphics_enabled, active_theme
     print("Disabling Basic Graphics mode...")
     basic_graphics_enabled = False
-    classic_theme_enabled = False
-    save_settings('graphics_configuration', [basic_graphics_enabled, classic_theme_enabled])
+    active_theme = 'flow'
+    save_settings('graphics_configuration', [active_theme, basic_graphics_enabled])
     print("\nBasic Graphics mode has been disabled.")
     graphics_settings()
 
 
 def enable_basic_graphics():
-    global basic_graphics_enabled, classic_theme_enabled
+    global basic_graphics_enabled, active_theme
     print("Applying Basic Graphics mode...")
     basic_graphics_enabled = True
-    classic_theme_enabled = True
+    active_theme = 'basic'
     time.sleep(0.5)
-    save_settings('graphics_configuration', [basic_graphics_enabled, classic_theme_enabled])
+    save_settings('graphics_configuration', [active_theme, basic_graphics_enabled])
     print("\nBasic Graphics mode has been enabled.")
     graphics_settings()
 
@@ -4809,7 +4736,7 @@ def ask_basic_graphics():
             graphics_settings()
     elif (basic_graphics_enabled is True and auto_applied_basic_graphics is True or basic_graphics_enabled is
           [True] and auto_applied_basic_graphics is True):
-        print("\nBasic Graphics mode cannot be disabled as your system can't render unicode characters. For more information, visit:\nhttps://reubenparfrey.wixsite.com/deathtrapdungeon/help/ ")
+        print("\nBasic Graphics mode can't be disabled right now as your system can't render unicode characters. For more information, visit:\nhttps://reubenparfrey.wixsite.com/deathtrapdungeon/help/ ")
         graphics_settings()
 
 
@@ -4833,15 +4760,42 @@ def disable_classic_theme():
         disable_classic_theme()
 
 
+def apply_new_theme(theme_to_apply):
+    global active_theme, basic_graphics_enabled
+    theme_description = "None specified"    # A brief description of the theme that is shown to the user before they apply it.
+    if theme_to_apply == 'flow':
+        theme_description = "\nThe Flow theme is the default visual style of DeathTrap Dungeon. Featuring solid, clean lines\nand subtle but stylish gradients, Flow is a modern re-imagining of the classic DeathTrap Dungeon menu design."
+    elif theme_to_apply == 'classic':
+        theme_description = "\nClassic Theme is a throwback to older versions of DeathTrap Dungeon. Making use of simplistic characters,\nClassic Theme transforms the look and feel of the game and is perfect for those who prefer the\nmore simplistic look of the menus in older versions of DeathTrap Dungeon."
+    elif theme_to_apply == 'basic':
+        theme_description = "\nBasic Theme is a variation of the Flow theme. Making use of more simplistic characters, this theme is\nperfect for those who want a modern looking theme that is easy on the eyes."
+    try:
+        choice = int(input(f"{theme_description}\n\nUse this theme?\n1] Yes\n2] No\n--> "))
+        if choice == 1:
+            print("Applying theme...")
+            active_theme = theme_to_apply
+            save_settings('graphics_configuration', [active_theme, basic_graphics_enabled])
+            print(f"{active_theme.title()} has been enabled.")
+            time.sleep(0.5)
+            switch_theme_dialogue()
+        elif choice == 2:
+            switch_theme_dialogue()
+        else:
+            raise ValueError
+    except ValueError:
+        invalid_selection_message()
+        apply_new_theme(theme_to_apply)
+
+
 def enable_classic_theme():
-    global classic_theme_enabled, basic_graphics_enabled
-    if classic_theme_enabled is True:
+    global active_theme
+    if active_theme == 'classic':
         disable_classic_theme()
     try:
         choice = int(input("\nClassic Theme is a throwback to older versions of DeathTrap Dungeon. Making use of simplistic characters,\nClassic Theme transforms the look and feel of the game and is perfect for those who prefer the\nmore simplistic look of the menus in older versions of DeathTrap Dungeon.\n\nUse this theme?\n1] Yes\n2] No\n--> "))
         if choice == 1:
             print("Applying theme...")
-            classic_theme_enabled = True
+            active_theme = 'classic'
             save_settings('graphics_configuration', [basic_graphics_enabled, classic_theme_enabled])
             print("\nClassic Theme has been enabled.")
             time.sleep(0.5)
@@ -4853,37 +4807,41 @@ def enable_classic_theme():
 
 
 def switch_theme_dialogue():
-    global classic_theme_enabled, basic_graphics_enabled
+    global classic_theme_enabled, basic_graphics_enabled, active_theme
     print(generate_header("CHANGE THEME"))
+    flow_selection = "1] Flow (default) [ ]"
+    basic_selection = "2] Basic Theme [ ]"
+    classic_selection = "3] Classic Theme [ ]"
     print("Select the theme you'd like to use from the list below. Themes completely transform the look and \nfeel of menus, but do not affect in-game graphics.")
-    if classic_theme_enabled:
-        flow_selection = "1] Flow (default) [ ]"
-        classic_selection = "2] Classic Theme [*]"
+    if active_theme == 'classic':
+        classic_selection = "3] Classic Theme [*]"
+    elif active_theme == 'basic':
+        basic_selection = "2] Basic Theme [*]"
     else:
         flow_selection = "1] Flow (default) [*]"
-        classic_selection = "2] Classic Theme [ ]"
-    print(str(flow_selection)+"\n"+str(classic_selection))
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████")
-    elif basic_graphics_enabled and classic_theme_enabled:
-        print("==================================")
+    print(f"{flow_selection}\n{basic_selection}\n{classic_selection}")
+    if generate_seperator():
+        print(generate_seperator())
     try:
-        choice = int(input("3] Cancel\n--> "))
-        if choice == 1 and not classic_theme_enabled or choice == 2 and classic_theme_enabled:
-            print("\nThat theme is already selected. Please choose a different theme.")
+        choice = int(input("4] Cancel\n--> "))
+        if choice == 1 and active_theme == 'flow' or choice == 3 and active_theme == 'classic' or choice == 2 and active_theme == 'basic':
+            print("\nThat theme is already in use. Please select a different one to use.")
             switch_theme_dialogue()
-        elif choice == 1 and classic_theme_enabled and not basic_graphics_enabled:
-            disable_classic_theme()
+        elif choice == 1 and not basic_graphics_enabled and active_theme != 'flow':
+            theme_to_apply = 'flow'
         elif choice == 1 and basic_graphics_enabled:
-            print("\nYou can't use the Flow theme because Basic Graphics mode is enabled. Try disabling Basic Graphics mode in \n'Settings > Graphics > Basic Graphics Mode', and try again.")
+            print("\nYou can't use the Flow theme because Basic Graphics mode is enabled. Disable Basic Graphics mode first in \n'Settings > Graphics > Basic Graphics Mode', and try again.")
             switch_theme_dialogue()
-        elif choice == 2 and not classic_theme_enabled:
-            enable_classic_theme()
-        elif choice == 3:
+        elif choice == 2 and active_theme != 'basic':
+            theme_to_apply = 'basic'
+        elif choice == 3 and active_theme != 'classic':
+            theme_to_apply = 'classic'
+        elif choice == 4:
             graphics_settings()
         else:
             print("\nPlease select a valid option.")
             switch_theme_dialogue()
+        apply_new_theme(theme_to_apply)
     except ValueError:
         switch_theme_dialogue()
 
@@ -4896,10 +4854,8 @@ def graphics_settings():
         basic_graphics_enabled = False
     print(generate_header("GRAPHICS SETTINGS"))
     print("1] Change Theme\n2] Basic Graphics Mode")
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████")
-    elif basic_graphics_enabled and classic_theme_enabled:
-        print("==================================")
+    if generate_seperator():
+        print(generate_seperator())
     try:
         choice = int(input("3] Cancel\n--> "))
     except ValueError:
@@ -4917,16 +4873,22 @@ def graphics_settings():
 
 
 def launch_bug_report(diagnostic_data, description, e):
-    bug_report_info = diagnostic_data
-    if description and e is not None:
-        bug_report_info = bug_report_info + f"\n\nCrash Details:\n{description}\n{e}"
-    print(f"\nPlease copy and paste the following into your bug report: \n\n{bug_report_info}\n")
+    global classic_theme_enabled
+    bug_report_info = diagnostic_data   # Get diagnostic data, to display to the user.
+    default_style = '██████████████████████████████████'    # The header and footer bars, used to separate the diagnostic data from the rest of the prompt.
+    if active_theme == 'classic':
+        default_style = '=================================='    # Change the style of the header and footer bars if classic theme or basic graphics is enabled.
+    if description and e is not None:   # Description and e are not none if this screen was accessed through the error handler.
+        bug_report_info = f"{default_style}\n{bug_report_info}\n\nERROR DETAILS:\n{description}\n{e}\n{default_style}" # Format the data - add header and footer bars, crash details, and diagnostic data.
+    else:
+        bug_report_info = f"{default_style}\n{bug_report_info}\n{default_style}"    # Again, format data - no crash details necessary here as this is what is shown when the user manually initiates a bug report through the Settings menu.
+    print(f"\nPlease copy and paste the following into your bug report: \n\n{bug_report_info}\n")   # Print the formatted data along with a message.
     try:
-        choice = int(input("\nThe above information contains important details (such as which version of DTD you are using), which\nmassively helps when fixing bugs. When you are ready to continue, select the relevant option below.\n\n1] I have copied this info, continue\n2] Cancel\n--> "))
+        choice = int(input("\nThe above information contains important details (such as which version of DTD you are using), which\nmassively helps when fixing bugs. When you are ready to continue, select the relevant option below.\n\n1] I have copied it, continue\n2] Cancel\n--> "))
         if choice == 1:
-            webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/')
+            webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/') # Launch the bug report page.
         elif choice == 2:
-            pass
+            pass    # Do nothing - the function after this screen was called is loaded instead.
         else:
             invalid_selection_message()
             launch_bug_report(diagnostic_data, description, e)
@@ -5041,6 +5003,8 @@ def refresh():
 def advanced_about():   # Exposes advanced game info to the player - this is mostly used for debugging purposes.
     print(generate_header("GAME INFO"))
     print(get_diagnostics())
+    if generate_seperator():
+        print(generate_seperator())
     time.sleep(0.5)
     advanced_settings()
 
@@ -5048,10 +5012,8 @@ def advanced_about():   # Exposes advanced game info to the player - this is mos
 def advanced_settings():
     print(generate_header("ADVANCED SETTINGS"))
     print("1] Refresh\n2] Default Settings\n3] View detailed game info\n4] Delete a save file")
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████")
-    elif basic_graphics_enabled and classic_theme_enabled:
-        print("==================================")
+    if generate_seperator():
+        print(generate_seperator())
     try:
         choice = int(input("5] Cancel\n--> "))
     except ValueError:
@@ -5213,10 +5175,8 @@ def critical_hit_settings():
 def gameplay_settings():
     print(generate_header("GAMEPLAY SETTINGS"))
     print("1] Save File Options\n2] Critical Hits")
-    if not basic_graphics_enabled and not classic_theme_enabled:
-        print("██████████████████████████████████")
-    elif basic_graphics_enabled and classic_theme_enabled:
-        print("==================================")
+    if generate_seperator():
+        print(generate_seperator())
     try:
         choice = int(input("3] Cancel\n--> "))
     except ValueError:
@@ -5237,7 +5197,6 @@ def save_settings(file_name, data_to_save):     # This function receives the nam
     data_directory = cwd + '/config'            # me repeating the save code over and over again.
     if not os.path.exists(data_directory):
         os.mkdir(data_directory)    # Make a config directory if it doesn't exist.
-    print("Saving settings...")
     try:
         with open(data_directory+'/'+file_name+'.dat', 'wb') as f:
             pickle.dump(data_to_save, f, protocol=2)
@@ -5247,7 +5206,7 @@ def save_settings(file_name, data_to_save):     # This function receives the nam
 
 def settings():
     global auto_updates_disabled, internal_identifier, is_beta, basic_graphics_enabled
-    if not basic_graphics_enabled and not classic_theme_enabled:
+    if not basic_graphics_enabled and active_theme == 'flow':
         print(r""" 
  █ SETTINGS: ░▒▒███████████████████
 █  [1] Sound                       █
@@ -5258,18 +5217,17 @@ def settings():
 █  [6] Advanced                    █
 █  [7] Exit                        █
  ██████████████████████████████████""")
-    if basic_graphics_enabled is True or classic_theme_enabled is True:
-        print(r"""
-Select an option:
-==================================
-1] Sound
+    if basic_graphics_enabled is True or active_theme != 'flow':
+        print(generate_header('SETTINGS'))
+        print(r"""1] Sound
 2] Graphics
 3] Software Updates
 4] Gameplay
 5] Report A Bug
-6] Advanced
-==================================
-7] Exit""")
+6] Advanced""")
+        if generate_seperator():
+            print(generate_seperator())
+        print("7] Exit")
     try:
         user_input = int(input("--> "))
         if user_input == 1:
@@ -5287,10 +5245,9 @@ Select an option:
         elif user_input == 6:
             advanced_settings()
         else:
-            invalid_selection_message()
-            settings()
+            raise ValueError
     except ValueError:
-        print("\nBad input. Only integers can be entered here!")
+        invalid_selection_message()
         settings()
 
 
@@ -5313,80 +5270,63 @@ def story():
     player_name_input()
 
 
-def start_chapter_two():
-    global player, debug
-    player.set_save_location(1)
-    if debug > 0:
-        print("SavePoint =", savePoint)
-    print(" ")
-    time.sleep(1.5)
-    ask_save()
-
-
-def chapter_1_attempt_chapter_3_start():
+def chapter_1_run():
     try:
-        left1 = int(input(
-            "As you round the corner, you come to a fork in the passage. You must decide which way to go! Left or right? (1 for left, 2 for right):"))
+        choice = int(input("\nAs you round the corner, you come to a fork in the passage. You must decide which way to go! Left or right? (1 for left, 2 for right):"))
+        if choice == 1:
+            print("\nYou decide to go left! As you round another corner, your heart sinks; you can see a heavy iron door blocking your path! You try to pull it \nopen but to no avail. It's jammed!")
+            time.sleep(1.75)
+            print(" ")
+            print(
+                "You can hear the echoing footsteps getting closer now, reverberating off the stone walls. You drop to the ground as the guard rounds the \ncorner. He cocks his gun...")
+            time.sleep(1.75)
+            game_over()
+        elif choice == 2:
+            print(" ")
+            print(
+                "You go right!! As you race down the grimy stone corridor, your heart drops; you can see a congestion of guards gathered at the bottom, their guns \ntrained on you.")
+            print(" ")
+            time.sleep(1.75)
+            print("You sink to the ground in dismay and despair. There's no escape...")
+            game_over()
+        else:
+            raise ValueError
     except ValueError:
-        print(" ")
-        print("Bad input. Only integers can be entered!")
-        chapter_1_attempt_chapter_3_start()
-    if left1 == 1:
-        print(
-            "You decide to go left! As you round another corner, your heart sinks; you can see a heavy iron door blocking your path! You try to pull it \nopen but to no avail. It's jammed!")
-        time.sleep(1.75)
-        print(" ")
-        print(
-            "You can hear the echoing footsteps getting closer now, reverberating off the stone walls. You drop to the ground as the guard rounds the \ncorner. He cocks his gun...")
-        time.sleep(1.75)
-        game_over()
-    elif left1 == 2:
-        print(" ")
-        print(
-            "You go right!! As you race down the grimy stone corridor, your heart drops; you can see a congestion of guards gathered at the bottom, their guns \ntrained on you.")
-        print(" ")
-        time.sleep(1.75)
-        print("You sink to the ground in dismay and despair. There's no escape...")
-        game_over()
-    else:
-        print("The guard catches up because that's not a valid choice! He shoots and doesn't miss...")
-        game_over()
+        invalid_selection_message()
+        chapter_1_run()
 
 
 def choice3():
-    global savePoint, player
+    global player
     global mute_audio, expert_mode_enabled, debug
-    print(" ")
     try:
-        runForIt = int(
-            input("Do you let the guard take you to solitary confinement? [1] Or do you make a break for it? [2]"))
-    except ValueError:
-        print(" ")
-        print("Bad input. Only integers can be entered!")
-        choice3()
-    if runForIt == 1:
-        time.sleep(0.75)
-        print("\nYou are dragged to solitary confinement, and the heavy iron door is slammed shut behind you.")
-        time.sleep(1)
-        if expert_mode_enabled is False:
+        choice = int(
+            input("\nDo you let the guard take you to solitary confinement? [1] Or do you make a break for it? [2] "))
+        if choice == 1:
+            time.sleep(0.75)
+            print("\nYou are dragged to solitary confinement, and the heavy iron door is slammed shut behind you.")
             time.sleep(1)
-            player.set_save_location(1)
-            ask_save()
+            if expert_mode_enabled is False:
+                time.sleep(1)
+                player.set_save_location(1)
+                ask_save()
+            else:
+                time.sleep(1)
+                choice4()
+        elif choice == 2:
+            print(
+                "\nYou start running! As you run down the grimy corridor, you can hear the rapid slams of footsteps behind you; the guard is hot on your tail.")
+            time.sleep(1)
+            chapter_1_run()
         else:
-            time.sleep(1)
-            choice4()
-    elif runForIt == 2:
-        print(
-            "You make a break for it! As you run down the grimy corridor, you can hear the rapid slams of footsteps behind you; the guard is hot on your tail.")
-        time.sleep(1)
-        print(" ")
-        chapter_1_attempt_chapter_3_start()
-    else:
+            raise ValueError
+    except ValueError:
+        invalid_selection_message()
         choice3()
 
 
 def second_choice_alternate():
-    global savePoint, expert_mode_enabled
+    global expert_mode_enabled, player
     print(
         "\nA nearby guard spots the commotion and comes running over with backup. There are too many guards to take on alone!")
     time.sleep(1)
@@ -5403,8 +5343,8 @@ def second_choice_alternate():
 
 def choice2():
     global item
-    global area, debug
-    area = 1
+    global enemy_ID, debug
+    enemy_ID = 1
     time.sleep(1.5)
     try:
         dropSaw = int(input(
@@ -5427,35 +5367,34 @@ def choice2():
         choice3()
 
 
-def chapterOneChoice():
+def chapter_1_first_choice():
     global player
     try:
         choice = int(
             input("\nWhat will you do? [1] to examine your surroundings further, [2] to try rattling the cell door. "))
+        if choice == 1:
+            print(
+                "\nYou glance around, looking for anything that could aid you. You notice a shard of glass laying in one corner.")
+            time.sleep(1.5)
+            print("\nYou pocket it, sure it'll come in handy.")
+            player.update_defensive_items('Shard of Glass')
+            choice2()
+        elif choice == 2:
+            print(
+                "\nYou rattle the cell door! But it's no use. The guard on the other side of the door doesn't even look at you.")
+            time.sleep(1.5)
+            chapter_1_first_choice()
+        else:
+            raise ValueError
     except ValueError:
-        print(" ")
-        print("Bad input. Only integers can be entered!")
-        chapterOneChoice()
-    if choice == 1:
-        print(
-            "\nYou glance around, looking for anything that could aid you. You notice a shard of glass laying in one corner.")
-        time.sleep(1.5)
-        print("\nYou pocket it, sure it'll come in handy.")
-        player.update_defensive_items('Shard of Glass')
-        choice2()
-    elif choice == 2:
-        print(
-            "\nYou rattle the cell door! But it's no use. The guard on the other side of the door doesn't even look at you.")
-        time.sleep(1.5)
-        chapterOneChoice()
-    else:
-        chapterOneChoice()
+        invalid_selection_message()
+        chapter_1_first_choice()
 
 
-def area1():
+def start_chapter_1():
     global debug
-    global area, basic_graphics_enabled
-    area = 1
+    global enemy_ID, basic_graphics_enabled
+    enemy_ID = 1
     if not basic_graphics_enabled:
         try:
             print("\n█▒░ Chapter One: Enter The Dungeon ░▒█")
@@ -5481,13 +5420,16 @@ def area1():
     time.sleep(1.5)
     print("\nA guard stands on the other side of the door, his back turned towards you.")
     time.sleep(1.5)
-    chapterOneChoice()
+    chapter_1_first_choice()
 
 
 def extras_menu():                      # The extras menu! This contains most of the stuff you unlock when the game has been beaten.
     print(generate_header('EXTRAS'))
+    print("Please choose an extra from the list below:\n1] Music Player\n2] Expert Mode")
+    if generate_seperator():
+        print(generate_seperator())
     try:
-        choice = int(input("Please choose an extra from the list below:\n1] Music Player\n2] Expert Mode\n3] Cancel\n--> "))
+        choice = int(input("3] Cancel\n--> "))
         if choice == 1 and no_pygame is False and sound_directory_error is False:
             print(generate_header('MUSIC PLAYER'))
             print(
@@ -5593,14 +5535,13 @@ Found a bug? Please be sure to report this using the 'Report a Bug' feature in t
 
 def menu():
     global debug, checked_for_update, basic_graphics_enabled, classic_theme_enabled, auto_applied_basic_graphics, mute_audio, is_beta
-    data_format_assistant()
+    data_format_daemon()
     if not auto_updates_disabled and not checked_for_update:
         checked_for_update = True   # This is a flag to stop the update check being called every time the menu is loaded. It's global so that it doesn't get reset every time the menu is called.
-        if check_network_connection():    # Begin the update checking process by first checking for internet connectivity.
-            check_for_updates(method_of_access='auto')
+        check_for_updates(method_of_access='auto')
     if is_beta:
         print("\n== This is a beta copy of DTD - for testing only ==")
-    if not basic_graphics_enabled and not classic_theme_enabled:
+    if not basic_graphics_enabled and active_theme == 'flow':
         print(r"""
  █ MAIN MENU: ░▒▒██████████████████
 █  [1] New Game                    █
@@ -5671,7 +5612,8 @@ def menu():
                     pygame.mixer.music.load('sfx/dtd_main.ogg')
                     pygame.mixer.music.play(1)
                 except Exception:
-                    pass
+                    print("\n\n* An unknown error occurred when loading audio - audio has been muted *\n")
+                    mute_audio = True
             time.sleep(3)
             story()
         elif user_input == 2:
@@ -5691,7 +5633,7 @@ def menu():
             print("\nPlease choose a valid option.")
             menu()
     except ValueError:
-        print("\nBad input. Only integers can be entered!")
+        invalid_selection_message()
         menu()
 
 
