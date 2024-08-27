@@ -88,3 +88,7 @@ Key- [x] = A patch for this bug has been implemented.
 - The game crashes after winning a battle if Pygame isn't installed. [x]
 - If you aren't holding any inventory items, a message displaying this should be shown in the save file preview - currently nothing is shown. [x]
 - Chapter 2 is extremely unstable and crashes if you look at it wrong. [x]
+- Fix a small graphical bug that causes a block character to appear when the game is started. [x]
+- If Basic Graphics mode is enabled automatically, the active theme is shown as Flow in the 'choose a new theme' dialogue. [x]
+- Currently, the auto update check is skipped entirely if you do not have an active internet connection. [x]
+- If you access the game info screen with the Basic theme active, this causes a mishmash of different themes to apply. []
