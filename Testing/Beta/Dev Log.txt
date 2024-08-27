@@ -91,4 +91,5 @@ Key- [x] = A patch for this bug has been implemented.
 - Fix a small graphical bug that causes a block character to appear when the game is started. [x]
 - If Basic Graphics mode is enabled automatically, the active theme is shown as Flow in the 'choose a new theme' dialogue. [x]
 - Currently, the auto update check is skipped entirely if you do not have an active internet connection. [x]
-- If you access the game info screen with the Basic theme active, this causes a mishmash of different themes to apply. []
+- If you access the game info screen with the Basic theme active, this causes a mishmash of different themes to apply. [x]
+- 'Skip and Don't Ask Again' option doesn't disable auto updates as it should. []
