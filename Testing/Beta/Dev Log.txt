@@ -67,7 +67,7 @@ Key- [x] = A patch for this bug has been implemented.
    - [] = I am aware of the bug, but haven't gotten around to patching it.
 
 - 'Never ask for overwrite confirmation' option currently doesn't work. [x]
-- Some formatting bugs during battles. [x]
+- Some text formatting bugs during battles. [x]
 - 'Erase save data' option returns to the main Options screen, instead of the Advanced screen as expected. [x]
 - When Basic Graphics is enabled, the game still thinks the Flow theme is active if you enter the Themes menu. [x]
 - Some crashes assosiated with playing under a previously converted save file. [x]
@@ -93,4 +93,4 @@ Key- [x] = A patch for this bug has been implemented.
 - If Basic Graphics mode is enabled automatically, the active theme is shown as Flow in the 'choose a new theme' dialogue. [x]
 - Currently, the auto update check is skipped entirely if you do not have an active internet connection. [x]
 - If you access the game info screen with the Basic theme active, this causes a mishmash of different themes to apply. [x]
-- 'Skip and Don't Ask Again' option doesn't disable auto updates as it should. []
+- 'Skip and Don't Ask Again' option doesn't disable auto updates as it should. [x]
