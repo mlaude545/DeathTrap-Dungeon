@@ -58,6 +58,7 @@ attribute of the Player class.
 variables floating around in the code.)	
 - Add descriptions for tracks in the Audio Player.
 - Add a test_chest function and implement it into the debug warp utility. 
+- Migrate the theming engine over to new system (reliant on strings rather than several booleans.)
 
 
 KNOWN BUGS:
