@@ -23,13 +23,14 @@ NEW FEATURES:
  Mode sees you play through the game with no checkpoints, basic stats and items,
  and more. See if you can become a true DTD master and overcome the challenge!
 
-- The game now features a brand new UI (named 'Flow')! Flow is now the
+- The game now features an all-new UI (named 'Flow')! Flow is now the
  default menu theme in the game. It leverages Unicode characters to form
  bold lines and subtle gradients.
 
-- The Classic theme has also been introduced, which is essentially just the
- same UI as seen in previous releases of DTD. This can be enabled in the Settings
- menu if you prefer the older visual style.
+- The game also features two other menu themes that completely change the look and
+ feel of the game! These include Classic theme, perfect for those of you who are feeling
+ nostalgic for older versions of DTD; and Flow Basic, a modern theme that is easy on
+ the eyes! Go to Settings > Graphics > Change Theme to apply them!
 
 - Added a new Basic Graphics Mode, aimed at systems which cannot render the Unicode
  characters used for both the Flow theme and for various in-game graphics. This is enabled
@@ -43,6 +44,10 @@ NEW FEATURES:
 - Added a new 'Gameplay' option in the Settings menu, which enables you to change many
  game-related settings! This menu can be used to change the balancing of the game,
  control how gameplay is saved, and more.
+
+- A preview of your save file is now shown before loading or deleting a saved game.
+ It shows progress, held items, defensive items, and more - meaning you know exactly 
+ which save file you're about to load or delete.
 
 - You can now access extras unlocked after beating the game right from the main menu! You
  now simply select 'Extras', instead of having to load the specific save file you beat the
@@ -67,6 +72,8 @@ NEW FEATURES:
  
 - Re-wrote the final boss fight from scratch, making it more balanced, fair, and challenging.
 
+- Re-wrote many chapters, improving wording and making them more challenging.
+
 
 SMALLER FEATURES / QUALITY OF LIFE IMPROVEMENTS:
 - Increased spacing between dialogues and messages to aid with readability.
@@ -77,10 +84,6 @@ SMALLER FEATURES / QUALITY OF LIFE IMPROVEMENTS:
 - Loads of performance improvements and speed optimisations thanks to refactoring
  the code. From navigating menus, to loading save files, everything now feels so
  much faster.
-
-- A preview of your save file is now shown before loading or deleting a saved game.
- It shows progress, held items, defensive items, and more, meaning you know exactly 
- which save file you're about to load or delete.
 
 - Removed the Player Profile menu, as it is no longer needed with the new save
  data preview feature.
