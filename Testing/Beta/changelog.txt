@@ -74,6 +74,9 @@ NEW FEATURES:
 
 - Re-wrote many chapters, improving wording and making them more challenging.
 
+- When using the 'Examine' option during a battle, your stats are now shown alongside the
+ enemy's stats!
+
 
 SMALLER FEATURES / QUALITY OF LIFE IMPROVEMENTS:
 - Increased spacing between dialogues and messages to aid with readability.
