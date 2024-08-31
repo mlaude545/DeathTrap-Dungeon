@@ -21,7 +21,7 @@ from datetime import datetime
 
 # Initialise global variables
 current_version = "3.0.0"  # Version of this release of DTD, used when checking for updates.
-internal_identifier = "DTD v3.0.0 BETA\nBuild 260824"   # A more human-readable version identifier, which is shown to the user.
+internal_identifier = "DTD v3.0.0 BETA\nBuild 310824"   # A more human-readable version identifier, which is shown to the user.
 checked_for_update = False  # This changes to True after the game has completed an auto update check.
 is_beta = True   # Set this to True if this is a beta copy of DTD, otherwise it should be False.
 refreshed_latest_release_ver = False    # This is used when the user initiates an update check. It ensures that the game refreshes to have the latest version number available from the online repo.
@@ -117,16 +117,16 @@ try:
     with open('config/graphics_configuration.dat', 'rb') as f:
         active_theme, basic_graphics_enabled = pickle.load(f)
 except Exception:
-    active_theme = 'flow'
+    active_theme = 'flow'   # Use the default theme if the graphics config file can't be loaded.
 
-if active_theme == 'classic' and not basic_graphics_enabled:
+if active_theme == 'classic' and not basic_graphics_enabled:    # Show a message if a different theme is active.
     print("\n== Classic Theme is enabled ==")
     active_theme = "classic"
 elif active_theme == 'basic' and not basic_graphics_enabled:
     print("\n== Basic Theme is enabled ==")
 
-if basic_graphics_enabled:
-    print("\n== Basic Graphics mode is enabled - graphics will not be drawn in full quality ==")
+if basic_graphics_enabled:  # Show a message if basic graphics mode is enabled.
+    print("\n== Basic Graphics mode is enabled - graphics will not be drawn in full quality ==\n")
     active_theme = "basic"    # Enable Basic theme as a fallback to ensure menus cannot be loaded with the Flow style under any circumstances.
 
 # Check if the host supports Unicode graphics. If not, enable Basic Graphics mode to avoid crashes.
@@ -138,7 +138,7 @@ except Exception:   # If an error occurs when trying to print a Unicode characte
     basic_graphics_enabled = True
     active_theme = "basic"
     auto_applied_basic_graphics = True  # This variable tells the game that Basic Graphics was applied automatically, and means that the user can't disable it.
-    print("\n== INFORMATION ==\nYour system does not appear to support unicode characters, so Basic Graphics mode has\nbeen enabled. This means that menus and in-game graphics will be rendered in a \nless detailed way. For more info, go to Settings > Graphics > Basic Graphics Mode.")
+    print("\n== INFORMATION ==\nYour system does not appear to support unicode characters, so Basic Graphics mode has\nbeen enabled. This means that menus and in-game graphics will be rendered in a \nless detailed way. For more info, go to Settings > Graphics > Basic Graphics Mode.\n")
 
 if basic_graphics_enabled == [True]:
     basic_graphics_enabled = True
@@ -307,18 +307,18 @@ class Juniper:
 
 class Player:
     def __init__(self, attack_damage, health, max_health, entered_name, inventory, defensive_items, has_beaten_game, has_completed_expert_mode, save_location):
-        self.attack = attack_damage
-        self.health = health
-        self.max_health = max_health
-        self.name = entered_name
-        self.inventory = inventory
-        self.has_beaten_game = has_beaten_game
-        self.has_completed_expert_mode = has_completed_expert_mode
-        self.save_location = save_location
-        self.defensive_items = defensive_items
-        self.hyper_potion_use_count = 0
-        self.original_attack = 0
-        self.original_defence = 0
+        self.attack = attack_damage     # The damage dealt to enemies.
+        self.health = health            # The player's health value.
+        self.max_health = max_health    # The maximum amount of health that can be restored.
+        self.name = entered_name        # Player name.
+        self.inventory = inventory      # A list containing items that can be used in battle, along with their respective quantities.
+        self.has_beaten_game = has_beaten_game  # Boolean - set to True if the main story has been completed.
+        self.has_completed_expert_mode = has_completed_expert_mode  # Boolean - set to True if Expert Mode is complete.
+        self.save_location = save_location  # Integer - corresponds to the location in the game. Mainly used when saving progress and when restarting from checkpoints.
+        self.defensive_items = defensive_items  # An array made up of defensive items (IE - weapons.)
+        self.hyper_potion_use_count = 0 # Keep track of how many turns the player has had the Hyper Potion active for.
+        self.original_attack = 0        # Keep a backup of the player's original attack damage stat when using Hyper Potion.
+        self.original_defence = 0       # Same as above, but for the defence stat.
 
     def get_name(self):
         return self.name
@@ -385,6 +385,7 @@ class Player:
     def use_hyper_potion(self, original_defence, original_attack):
         self.original_defence = original_defence    # The player's defence and attack levels are stored in these two
         self.original_attack = original_attack      # variables, so they can be restored later.
+        self.inventory['Hyper Potion'] -= 1     # Reduce inventory item quantity.
         self.attack = 25
         self.health = 25
         self.max_health = 25
@@ -406,10 +407,12 @@ class Player:
         return
 
     def use_healing_potion(self):
-        self.health = self.max_health
+        self.health = self.max_health   # Restore health
+        self.inventory['Healing Potion'] -= 1   # Reduce healing potion quantity by one.
         return self.health
 
     def use_smokescreen(self, enemy_ID):
+        self.inventory['Smokescreen'] -= 1
         if enemy_ID == 1:
             second_choice_alternate()
         elif enemy_ID == 2:
@@ -441,34 +444,35 @@ class Player:
     def is_game_beaten(self):
         return self.has_beaten_game
 
-    def game_beaten(self):
+    def game_beaten(self):  # Set has_beaten_game to True if the main story is complete.
         self.has_beaten_game = True
         return
 
-    def is_expert_mode_complete(self):
+    def is_expert_mode_complete(self):  # Returns the status of Expert Mode completion.
         return self.has_completed_expert_mode
 
-    def completed_expert_mode(self):
+    def completed_expert_mode(self):    # Sets has_completed_expert_mode to True if Expert Mode has been beaten.
         self.has_completed_expert_mode = True
         return
 
-    def grant_default_inventory(self):
+    def grant_default_inventory(self):  # Reset the inventory back to it's default state.
         self.inventory = {'Healing Potion': 0, 'Hyper Potion': 0, 'Smokescreen': 0}
         return
 
-    def update_inventory(self, item_name, quantity=1):
+    def update_inventory(self, item_name, quantity=1):  # Add an item to the player's inventory.
         if item_name in self.inventory:
             self.inventory[item_name] += quantity
         else:
             print(f"Invalid item: {item_name}")
 
-    def get_defensive_items(self):
+    def get_defensive_items(self):  # Return the player's held defensive items.
         return self.defensive_items
 
     def update_defensive_items(self, item_name):
-        self.defensive_items.append(str(item_name))
+        if item_name not in self.defensive_items:   # Only add to the defensive items list if the player doesn't already have that item.
+            self.defensive_items.append(str(item_name))
         if self.defensive_items[0] == '* No Defensive Items *' and len(self.defensive_items) > 1:
-            self.defensive_items.pop(0)   # Remove the 'no defensive items' warning when the player gains an item.
+            self.defensive_items.pop(0)   # Remove the 'no defensive items' warning when the player gains an item (if the first element of the array is the warning and there is more than one element in the array.)
         return
 
 
@@ -499,7 +503,7 @@ class BattleLogic:  # This class contains the various logic functions used withi
         return
 
     def critical_hit(self, expert_mode_enabled, type):
-        max_boundary = 10
+        max_boundary = 10   # Max boundary is the chance that a critical hit will be landed. So if its 10 for example, then there's a 1 in 10 chance of a critical hit.
         if type == 'enemy' and expert_mode_enabled:
             max_boundary = 7
         elif type == 'enemy' and not expert_mode_enabled:
@@ -509,7 +513,7 @@ class BattleLogic:  # This class contains the various logic functions used withi
         elif type == 'player' and not expert_mode_enabled:
             max_boundary = 10
         crit = random.randint(0, int(max_boundary))
-        if crit == 7:
+        if crit == 1:
             return True
         else:
             return False
@@ -851,7 +855,7 @@ def handle_error(description, e):  # This function displays error messages, taki
 
 
 def generate_defensive_item_list(player_max_health, damage):
-    defensive_items = ['[No defensive items]']         # This function is used when converting save files from
+    defensive_items = ['* No defensive items *']         # This function is used when converting save files from
     if player_max_health == 20 and damage == 5:        # older formats. In this version of the game, the player's
         defensive_items = ['shard of glass']           # defensive items (dropped by enemies) are simply saved as an
     elif player_max_health == 20 and damage == 7:      # array. However, older versions of the game didn't do this. This
@@ -1032,8 +1036,10 @@ def check_for_updates(method_of_access):
         with open(filename) as f:
             latest_stable_version = f.read()
             latest_stable_version = latest_stable_version.strip()  # Remove newline from end of file
-    except Exception:
-        pass
+    except Exception as e:
+        if method_of_access == 'manual':
+            handle_error('Error opening cached content. Try manually checking for new releases at: https://reubenparfrey.wixsite.com/deathtrapdungeon/downloads/', e)
+            software_update_settings()
     if latest_stable_version > current_version:
         ask_download_update(method_of_access, latest_stable_version)
     else:
@@ -1187,14 +1193,12 @@ def start_expert_mode():
             extras_menu()
         elif choice == 3:
             print("""
-        When Expert Mode is enabled, certain sections in the game become more challenging...
-        - Enemies are more likely to land critical hits. (Normally there is a 1 in 25 chance of this happening, this becomes 1 in 7).
-        - You are less likely to land critical hits (Normally there is a 1 in 10 chance of this happening, this becomes 1 in 15). 
-        - You start at the beginning of the game with basic stats and no inventory items (these are returned upon exiting or beating Expert Mode).
-        - Battles cannot be escaped as easily.
-        - The game cannot be saved, and checkpoints cannot be used.
-        - Enemies are less likely to drop items upon being defeated.
-        - Hyper Potions are less effective.""")
+        When you play on Expert Mode, here's what is different...
+        - You start at the beginning of the game with basic stats and no held items (you get them back, don't worry!)
+        - Enemies are more likely to land critical hits, and you are less likely to land them.
+        - You can't flee from battles as easily.
+        - You can't save your progress, and you can't use checkpoints.
+        - Enemies are less likely to drop items upon being defeated.""")
             start_expert_mode()
         else:
             start_expert_mode()
@@ -1237,6 +1241,7 @@ def save_file_incompatible(filename, extra_feature):   # Allow the player to con
 
 def show_save_preview(player):                  # This function generates a clean, compact save file preview that
     global basic_graphics_enabled, classic_theme_enabled   # consolidates all the main info (progress, stats, etc...) into
+    display_achievements = "* No achievements have been unlocked *"
     print(generate_header('SAVE FILE INFO'))  # a neat format for the player to read. The preview is shown
     print("PLAYER STATS:")                  # before loading or erasing a save file.
     print("Name: %s" % player.get_name())
@@ -1279,13 +1284,11 @@ def show_save_preview(player):                  # This function generates a clea
         print("Chapter Eight: Finale")
     else:
         print("* No progress has been saved. *")
-    print("\nACHIEVEMENTS:")
     if player.is_game_beaten():
-        print("- The game has been beaten.")
-    elif player.is_expert_mode_complete():
-        print("- Expert Mode is complete.")
-    else:
-        print("* No achievements have been unlocked *")
+        display_achievements = "- You have completed the main story."
+    if player.is_expert_mode_complete():
+        display_achievements += "\n- You have completed Expert Mode."
+    print(f"\nACHIEVEMENTS:\n{display_achievements}")
     if generate_seperator():
         print(generate_seperator())
 
@@ -1383,6 +1386,7 @@ def save_success():
     global player, have_credits_rolled
     save_location = int(player.get_save_location())
     game_beaten = player.is_game_beaten()
+    expert_mode_complete = player.is_expert_mode_complete()
     try:
         continue2 = int(input("\nYour progress has been saved! Continue playing? \n1] Yes\n2] No\n--> "))
         if continue2 == 1:
@@ -1391,7 +1395,10 @@ def save_success():
                 warp_to_chapter(save_location)
             elif game_beaten and have_credits_rolled:
                 print("Saved!")
-                post_credits()
+                if expert_mode_complete:
+                    post_credits_expert_mode()
+                else:
+                    post_credits()
             else:
                 return
         elif continue2 == 2:
@@ -1431,7 +1438,7 @@ def display_slot_info(slot_number, player_name, game_beat):
 
 
 def save_to_slot(slot_filename, post_game_save):
-    global save_location_cache, savePoint, gameBeat, have_credits_rolled, player, mute_audio
+    global save_location_cache, have_credits_rolled, player, mute_audio
     print("Now saving...")
     # Retrieve all the data that needs to be saved from the Player object, and initialise it to separate variables.
     player_name = str(player.get_name())
@@ -1453,12 +1460,12 @@ def save_to_slot(slot_filename, post_game_save):
     # Logic for loading the correct thing after the player saves progress.
     if not have_credits_rolled:
         save_success()
-    elif have_credits_rolled and gameBeat and not beatExpertMode:
+    elif have_credits_rolled and player.is_game_beaten():
         print("Saved!")
-        post_credits()
-    elif have_credits_rolled and gameBeat and beatExpertMode:
-        print("Saved!")
-        post_credits_expert_mode()
+        if not expert_mode_beaten:
+            post_credits()
+        else:
+            post_credits_expert_mode()
 
 
 def display_save_slot_info(slot_info):
@@ -1532,13 +1539,12 @@ def save_game():
 
 
 def ask_save():
-    global mute_audio, player
+    global mute_audio, player, player_expert_cache
     global enemy_ID
-    global have_credits_rolled, gameBeat, expert_mode_enabled
+    global have_credits_rolled, expert_mode_enabled
     reset_temp_variables()
-    if expert_mode_enabled and have_credits_rolled:   # If expert mode is enabled and the credits have rolled, then expert
-        player.completed_expert_mode()                # mode is complete!
-        restore_cached_stats()
+    if expert_mode_enabled and have_credits_rolled:   # If expert mode is enabled and the credits have rolled, then expert mode is complete!
+        restore_cached_stats()  # Restore player's original stats
     save_location = player.get_save_location()
     has_beaten_game = player.is_game_beaten()
     has_beaten_expert_mode = player.is_expert_mode_complete()
@@ -1546,20 +1552,28 @@ def ask_save():
         if not have_credits_rolled:
             ask = int(input("\nCheckpoint reached! Would you like to save your progress?\n1] Yes\n2] No\n--> "))
         else:
-            ask = int(input("Would you like to save?\n1] Yes\n2] No\n--> "))
+            ask = int(input("\nWould you like to save?\n1] Yes\n2] No\n--> "))
         if ask == 1:
             save_game()
         elif ask == 2:
             if not have_credits_rolled:
                 print("Okay, maybe next time.")
             else:
-                choice = int(input("Are you sure? Bonus features unlocked after beating the game will be unavailable if you don't save.\n1] Yes\n2] No\n--> "))
-                if choice == 1:
-                    pass
-                else:
+                try:
+                    choice = int(input("Are you sure? Bonus features unlocked after beating the game will be unavailable if you don't save.\n1] Yes\n2] No\n--> "))
+                    if choice == 1:
+                        pass
+                    elif choice == 2:
+                        ask_save()
+                    else:
+                        raise ValueError
+                except ValueError:
+                    invalid_selection_message()
                     ask_save()
+        else:
+            raise ValueError
     except ValueError:
-        print("\nPlease choose a valid option.")
+        invalid_selection_message()
         ask_save()
     # Logic for loading the correct part of the game if the player decides not to save progress.
     if not has_beaten_game and not have_credits_rolled:   # Game hasn't been completed - load the appropriate chapter.
@@ -1572,7 +1586,7 @@ def ask_save():
         return
 
 
-def post_creditsAutosave(): # I'm gonna be real, I think this is a legacy function but the game seems to have issues whenever
+def post_creditsAutosave(): # I'm gonna be real, I think this is never used but the game seems to have issues whenever
     global postGameSave     # I try to remove it. So, I've decided to do the ultimate programmer move and not touch it for now.
     save_file = 'savedata3.dat'
     if postGameSave == 1:
@@ -1814,6 +1828,7 @@ def restart_from_checkpoint():
     try:
         restart = int(input("Continue from last checkpoint? \n1] Yes\n2] No\n--> "))
         if restart == 1:
+            player.restore_health()
             warp_to_chapter(
                 save_location)  # Pass the save location to the warp_to_chapter function - saves me having to repeat the warp logic every time it is needed.
         elif restart == 2:
@@ -1828,16 +1843,18 @@ def restart_from_checkpoint():
 
 
 def expert_checkpoint_restart():
-    global player, player_expert_cache
+    global player, player_expert_cache, expert_mode_enabled
     try:
         choice = int(input("You have died on Expert Mode! Will you retry or quit? \n1] Retry\n2] Quit\n--> "))
         if choice == 1:
             player.grant_default_inventory()    # Reset inventory items
+            player.restore_health()
             print("\nGood luck!")
             start_chapter_1()
         elif choice == 2:
             player = player_expert_cache    # Return the player's original stats.
-            print("\nAll of your previous stats and items have been returned. Better luck next time!")
+            expert_mode_enabled = False     # Disable Expert Mode.
+            print("\nAll of your stats and items have been returned. Better luck next time!")
             extras_menu()
         else:
             expert_checkpoint_restart()
@@ -1857,7 +1874,8 @@ def game_over():
     print("\nYour mission is failed. As you lay dying on the ground, you think of all of the innocent people that you didn't manage to save...")
     time.sleep(2.55)
     if not basic_graphics_enabled:
-        print(r""" ▄▀▀▀▀▄    ▄▀▀█▄   ▄▀▀▄ ▄▀▄  ▄▀▀█▄▄▄▄                   
+        print(r""" 
+▄▀▀▀▀▄    ▄▀▀█▄   ▄▀▀▄ ▄▀▄  ▄▀▀█▄▄▄▄                   
 █         ▐ ▄▀ ▀▄ █  █ ▀  █ ▐  ▄▀   ▐                   
 █    ▀▄▄    █▄▄▄█ ▐  █    █   █▄▄▄▄▄                    
 █     █ █  ▄▀   █   █    █    █    ▌                    
@@ -1869,7 +1887,8 @@ def game_over():
                 █      █ ▐  █    █    █▄▄▄▄▄  ▐  █▀▀█▀  
                 ▀▄    ▄▀    █   ▄▀    █    ▌   ▄▀    █  
                   ▀▀▀▀       ▀▄▀     ▄▀▄▄▄▄   █     █   
-                                     █    ▐   ▐     ▐  """)
+                                     █    ▐   ▐     ▐  
+""")
     else:
         print("\n== GAME OVER ==\n")
     if not expert_mode_enabled:
@@ -1916,7 +1935,7 @@ def chest8():
 
 
 def post_credits_expert_mode():
-    global mute_audio, basic_graphics_enabled
+    global mute_audio, expert_mode_enabled
     if not mute_audio:
         pygame.mixer.music.load("sfx/curtain_call.ogg")
         pygame.mixer.music.play(0)
@@ -1930,19 +1949,13 @@ def post_credits_expert_mode():
     print(
         "\nFinally, thank you so much for playing the game. I've been absolutely overwhelmed by the amount of support I've had over the\nyears, and the fact that you've taken the time to not only beat the game, but also complete Expert Mode, genuinely\nmakes me so happy.")
     time.sleep(1)
-    choice = input("\nAs soon as you are ready, please press [Enter] to continue... ")
-    if choice == "":
-        time.sleep(0.5)
-        if not mute_audio:
-            pygame.mixer.music.fadeout(200)
-        print(" ")
-        menu()
-    else:
-        time.sleep(0.5)
-        if not mute_audio:
-            pygame.mixer.music.fadeout(200)
-        print(" ")
-        menu()
+    input("\nAs soon as you are ready, please press [Enter] to continue... ")
+    time.sleep(0.5)
+    if not mute_audio:
+        pygame.mixer.music.fadeout(200)
+    print(" ")
+    expert_mode_enabled = False
+    menu()
 
 
 def post_credits():  # The screen showed post-credits.
@@ -1950,10 +1963,7 @@ def post_credits():  # The screen showed post-credits.
     if not mute_audio:
         pygame.mixer.music.load("sfx/curtain_call.ogg")
         pygame.mixer.music.play(0)
-    if not basic_graphics_enabled:
-        print("\n█ CONGRATULATIONS! ░▒▒████████████")
-    else:
-        print("\n== CONGRATULATIONS! ==")
+    print(generate_header("CONGRATULATIONS"))
     print(
         "Well done for overcoming the challenge and beating the game! The future of Medway may be uncertain, but it's sure to be prosperous with\nEmperor Juniper gone. I hope you enjoyed playing the game as much as I enjoyed making it!")
     time.sleep(2)
@@ -1983,22 +1993,23 @@ def post_credits():  # The screen showed post-credits.
     menu()
 
 
-def restore_cached_stats():  # This function kicks in after you beat Expert Mode. It restores stats and inventory items.
+def restore_cached_stats():  # This function kicks in after you beat Expert Mode. It restores your original stats and items.
     global player, player_expert_cache
     player = player_expert_cache    # Reset the player object with the cached player object.
-    player.completed_expert_mode()  # Set the has_completed_expert_mode flag.
+    player.completed_expert_mode()
+    print(player.is_expert_mode_complete())
 
 
 def game_credits():
-    global mute_audio, have_credits_rolled, gameBeat, basic_graphics_enabled, expert_mode_enabled, player
+    global mute_audio, have_credits_rolled, basic_graphics_enabled, expert_mode_enabled, player
     if not mute_audio:
-        if not gameBeat:
+        if not player.is_game_beaten():
             try:
                 pygame.mixer.music.load("sfx/ambient.ogg")
                 pygame.mixer.music.play(1)
             except Exception:
                 pass
-        elif gameBeat is True:
+        else:
             try:
                 pygame.mixer.music.load("sfx/ambient_percussion.ogg")
                 pygame.mixer.music.play(1)
@@ -2037,6 +2048,8 @@ def game_credits():
     if not mute_audio:
         pygame.mixer.music.fadeout(1000)
     player.game_beaten()    # Sets the attribute 'game_beaten' to true, so the game knows that the player has completed the story.
+    if expert_mode_enabled:
+        restore_cached_stats()
     player.restore_health() # Restore health
     time.sleep(1)
     ask_save()
@@ -2128,14 +2141,15 @@ def ask_view_stats():
 
 
 def obtain_dropped_item(sprite, item_description, item_name, item_attack_increment, item_defense_increment, player_held_defensive_items):
-    global player
-    if debug != 0:
-        player.update_defensive_items('Wooden Spear')
-        print(player_held_defensive_items)
+    global player, expert_mode_enabled
+    if item_name == "nothing" and expert_mode_enabled:
+        print("\nThe guard is holding nothing of value to you, and drops no loot!")
+        time.sleep(1.5)
+        ask_view_stats()
     try:
         choice = int(input("\nThe guard drops a "+str(item_name)+". Pick it up?\n1] Yes\n2] No\n--> "))
         if choice == 1:
-            if item_name in player_held_defensive_items:
+            if item_name in player_held_defensive_items:    # If the player is already holding this item, don't let them get it a second time.
                 print("\nYou already have this item, you can't carry a second!")
                 ask_view_stats()
             else:
@@ -2144,7 +2158,7 @@ def obtain_dropped_item(sprite, item_description, item_name, item_attack_increme
                     player.update_defensive_items(str(item_name))
                     if item_attack_increment != 0:  # If the item increases attack power, update player stats accordingly
                         player.gain_attack(int(item_attack_increment))
-                    if item_defense_increment != 0:
+                    if item_defense_increment != 0: # Same as above, but for items that affect defense.
                         player.gain_defence(int(item_defense_increment))
                 elif item_name == "loaf of bread":
                     player.restore_health()
@@ -2172,17 +2186,17 @@ def enemy_defeated(enemy_type, enemy_object, battle_logic, audio_lockout):  # Lo
     enemies_defeated.append(enemy_ID)
     player_held_defensive_items = player.get_defensive_items()
     if enemy_type == 'guard' or enemy_type == 'high_rank_guard':
-        enemy_item = enemy_object.get_held_item()
-        dropped_item = Items(str(enemy_item))
+        enemy_item = enemy_object.get_held_item()   # Get the item that the defeated enemy was holding.
+        dropped_item = Items(str(enemy_item))   # Create an object using the Items class from the held item.
         if not basic_graphics_enabled:
-            sprite = dropped_item.get_item_sprite()
+            sprite = dropped_item.get_item_sprite() # Show the item sprite.
         else:
-            sprite = dropped_item.get_basic_sprite()
-        item_defense_increment = dropped_item.get_defense_increment()
-        item_attack_increment = dropped_item.get_attack_increment()
-        item_description = dropped_item.get_item_description()
-        item_name = str(dropped_item.get_item_name().lower())  # Retrieve the item name; make it lowercase so it can be added to a string without looking janky.
-        obtain_dropped_item(sprite, item_description, item_name, item_attack_increment, item_defense_increment, player_held_defensive_items)
+            sprite = dropped_item.get_basic_sprite()    # Same as above, but for basic graphics mode.
+        item_defense_increment = dropped_item.get_defense_increment()   # Get the defense value of the item.
+        item_attack_increment = dropped_item.get_attack_increment()     # Same as above, but for attack.
+        item_description = dropped_item.get_item_description()      # Get a description of the item, generated when the item object was created.
+        item_name = str(dropped_item.get_item_name().lower())  # Retrieve the item name and make it lowercase so it can be added to a string without looking janky.
+        obtain_dropped_item(sprite, item_description, item_name, item_attack_increment, item_defense_increment, player_held_defensive_items)    # Pass all the relevant variables to the obtain_dropped_item function.
     elif enemy_type == 'juniper':
         enemy_type = 'juniper_phase_two'    # Set the enemy_type variable to the correct phase, so Juniper's stats can be reset by encounter_enemy.
         time.sleep(2)
@@ -2372,6 +2386,7 @@ def encounter_enemy(enemy_type):                   # The encounter_enemy functio
     global basic_graphics_enabled, expert_mode_enabled, enemy_ID  # the appropriate character artwork. There are two sprites; one for normal gameplay,
     enemy_encounter_message = "default"            # and one for players with Basic Graphics mode enabled. The global variable
     enemy_sprite = "default"                       # basic_graphics_enabled is used to choose the correct sprite. It also initialises the
+    enemy_held_item = "default"
     if enemy_type == 'juniper' or enemy_type == 'juniper_phase_two' or enemy_type == 'juniper_phase_three':     # enemy as an object.
         if not basic_graphics_enabled:
             enemy_sprite = r"""   
@@ -2462,15 +2477,16 @@ def encounter_enemy(enemy_type):                   # The encounter_enemy functio
           ()"""
         # Juniper init; sets the appropriate attack / defence levels.
         enemy_encounter_message = "Emperor Juniper draws his sword!"
-        if expert_mode_enabled:
-            enemy_object = Juniper(5, 20, 20, 0)
-        else:
-            enemy_object = Juniper(7, 22, 22, 0)
-        if enemy_object.get_phase() == 2 and not expert_mode_enabled:
-            enemy_object.set_health(25)
-            enemy_object.set_attack(8)
-        elif enemy_object.get_phase() == 2 and expert_mode_enabled:
-            enemy_object.set_attack(6)
+        if enemy_type == 'juniper' or enemy_type == 'juniper_phase_two':
+            if not expert_mode_enabled:
+                enemy_object = Juniper(7, 22, 22, 0)
+            else:
+                enemy_object = Juniper(5, 20, 20, 0)
+        elif enemy_type == 'juniper_phase_three':
+            if not expert_mode_enabled:
+                enemy_object = Juniper(8, 25, 25, 2)
+            else:
+                enemy_object = Juniper(6, 25, 25, 2)
         battle_logic = BattleLogic('juniper', 'sfx/puppets.ogg')
     elif enemy_type == 'guard':
         if not basic_graphics_enabled:
@@ -2532,22 +2548,28 @@ def encounter_enemy(enemy_type):                   # The encounter_enemy functio
         # Guard init here; uses the global variable 'enemy_ID' to determine the stats of the guard.
         enemy_encounter_message = "You are challenged by a guard!"
         battle_logic = BattleLogic('guard', 'sfx/battle.ogg')
-        if enemy_ID == 1:
-            enemy_object = Enemy("GUARD", 5, 20, 20, "Wooden Spear")
-        elif enemy_ID == 2:
-            enemy_object = Enemy("GUARD", 5, 20, 20, "Wooden Shield")
-        elif enemy_ID == 3:
-            enemy_object = Enemy("GUARD", 5, 20, 20, "Loaf of Bread")
-        elif enemy_ID == 4:
-            enemy_object = Enemy("GUARD", 5, 20, 20, "Rusty Sword")
-        elif enemy_ID == 5:
-            enemy_object = Enemy("GUARD", 5, 20, 20, "Hyper Potion")
-        elif enemy_ID == 6:
-            enemy_object = Enemy("GUARD", 5, 20, 20, "Rusty Chestplate")
-        elif enemy_ID == 7:
-            enemy_object = Enemy("GUARD", 5, 20, 20, "Healing Potion")
-        elif enemy_ID == 8:
-            enemy_object = Enemy("GUARD", 5, 20, 20, "Healing Potion")
+        # Logic to give the guard the correct held item for their location in-game and the difficulty setting.
+        if enemy_ID == 1 and not expert_mode_enabled:
+            enemy_held_item = "Wooden Spear"
+        elif enemy_ID == 1 and expert_mode_enabled:
+            enemy_held_item = "Healing Potion"
+        elif enemy_ID == 2 and not expert_mode_enabled:
+            enemy_held_item = "Wooden Shield"
+        elif enemy_ID == 3 and not expert_mode_enabled:
+            enemy_held_item = "Loaf of Bread"
+        elif enemy_ID == 4 and not expert_mode_enabled:
+            enemy_held_item = "Rusty Sword"
+        elif enemy_ID == 5 and not expert_mode_enabled:
+            enemy_held_item = "Hyper Potion"
+        elif enemy_ID == 5 and expert_mode_enabled:
+            enemy_held_item = "Healing Potion"
+        elif enemy_ID == 6 and not expert_mode_enabled:
+            enemy_held_item = "Rusty Chestplate"
+        elif enemy_ID == 2 or enemy_ID == 3 or enemy_ID == 4 or enemy_ID == 6 and expert_mode_enabled:
+            enemy_held_item = "Nothing"
+        else:
+            enemy_held_item = "Healing Potion"  # enemy_ID 7 and 8 both have healing potions
+        enemy_object = Enemy("GUARD", 5, 20, 20, enemy_held_item)
     elif enemy_type == 'high_rank_guard':
         if not basic_graphics_enabled:
             enemy_sprite = r"""
@@ -2752,7 +2774,7 @@ def chapter_7_continue_choice():
             else:
                 start_chapter_8()
         elif choice == 2:
-            print("\nNot quite finished here just yet, you backtrack to the enemy_ID where the paths originally split.")
+            print("\nNot quite finished here just yet, you backtrack to the area where the paths originally split.")
             chapter_7_split()
         else:
             invalid_selection_message()
@@ -2768,7 +2790,7 @@ def chest7():
         if choice == 1:
             if search_chest('Healing Potion'):
                 searchedChest7mk2 = True
-                print("\nYou return to the previous enemy_ID where the paths split.")
+                print("\nYou return to the previous area where the paths split.")
                 time.sleep(1.5)
                 chapter_7_split()
             else:
@@ -2796,58 +2818,8 @@ def chapter_7_chest():
         chapter_7_continue_choice()
 
 
-def chapter_7_chestlegacy():
-    global healingPotion, searchedChest7, healingpotionQuantity, pickedUpKey, basic_graphics_enabled
-    try:
-        choice = int(
-            input("\nBefore pressing on, you decide glance to the chest once more. Search it?\n1] Yes\n2] No\n--> "))
-    except ValueError:
-        chapter_7_chest()
-    if choice == 1 and searchedChest7 != True:
-        try:
-            choice2 = int(
-                input("\nYou decide to search the chest! Inside you find a key. Take it?\n1] Yes\n2] No\n--> "))
-        except ValueError:
-            print("\nOnly integers can be entered here!")
-            chapter_7_chest()
-        if choice2 == 1 and searchedChest7 == False:
-            print("\nYou obtained the key!\n")
-            if basic_graphics_enabled is False:
-                try:
-                    print(r"""                                                                    ██████          
-                                                                ████░░░░░░████      
-                                                              ██░░░░░░░░░░    ██    
-                                                            ██░░░░██████████░░  ██  
-                                                            ██░░░░██      ██░░  ██  
-            ████████████████████████████████████████████████░░░░██          ██░░░░██
-            ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░██          ██░░░░██
-              ██░░░░██░░░░██░░░░████████████████████████████░░░░██          ██░░░░██
-                ████  ████  ████                            ██░░░░██      ██░░░░██  
-                                                            ██░░░░██████████░░░░██  
-                                                              ██░░░░░░░░░░░░░░██    
-                                                                ████░░░░░░████      
-                                                                    ██████          """)
-                except Exception:
-                    pass
-            print("\nA simple-looking key. Maybe it could be used to open a nearby door?")
-            time.sleep(1)
-            pickedUpKey = True
-            searchedChest7 = True
-            time.sleep(1)
-            chapter_7_continue_choice()
-        elif choice2 == 2:
-            print("\nYou decide not to take the key.")
-            chapter_7_continue_choice()
-    elif choice == 1 and searchedChest7 == True:
-        print("\nThis chest has already been searched, and there is no loot remaining.")
-        chapter_7_continue_choice()
-    else:
-        print("\nYou elect not to search the chest.")
-        chapter_7_continue_choice()
-
-
 def chapter_7_split():
-    global discoveredChapterSevenDoor, defeatedChapterSevenGuard, enemy_ID, pickedUpKey, playerHealth, playerMaxHealth
+    global discoveredChapterSevenDoor, defeatedChapterSevenGuard, enemy_ID, pickedUpKey, player
     try:
         choice = int(input("\nEventually, you come to a split; you can either go left [1] or right [2] "))
     except ValueError:
@@ -2887,7 +2859,7 @@ def chapter_7_split():
             "\nBehind the door, you find a small room with a chest in one corner. A loaf of bread also sits on the floor. It's a little mouldy, but\nit's food. You eat it.")
         time.sleep(1.5)
         print("\nHealth has been fully restored!")
-        playerHealth = playerMaxHealth
+        player.restore_health()
         chest7()
     else:
         print("\nYou head right! As you round a corner, you come to a thick-looking metal door.")
@@ -3125,7 +3097,7 @@ def chapter_6_choice():
 
 
 def chapter_6_start():
-    global basic_graphics_enabled, player
+    global expert_mode_enabled, player, basic_graphics_enabled
     time.sleep(1)
     if not basic_graphics_enabled:
         try:
@@ -3161,7 +3133,7 @@ def chapter_6_start():
     time.sleep(2.5)
     print("\nHaving revitalised yourself, you peer around, examining this new enemy_ID.")
     time.sleep(1.5)
-    print("\nThe surrounding enemy_ID is extremely dark. You squint, waiting for your eyes to adjust.")
+    print("\nThe surrounding area is extremely dark. You squint, waiting for your eyes to adjust.")
     time.sleep(1.5)
     print(
         "\nThis room is massive; stone pillars stretch upwards towards an intricate arched ceiling. A large chandelier hangs, but is not lit.")
@@ -3569,7 +3541,7 @@ def chapter_4_discover_door():
 
 
 def chapter_4_discover_chest():
-    global player, single_use_items
+    global player, single_use_items, expert_mode_enabled
     if 'chapter_4_key' in single_use_items:
         print("\nThis chest has already been searched, and there is no loot remaining. Disappointed, you  return back to the previous area. \n")
         chapter_4_split()
@@ -4238,7 +4210,7 @@ package of what appears to be food through the opening and promptly slams the ha
 
 
 def warp_debug():
-    global damage, debug, hyperPotion, hyperpotionQuantity, enemy_ID, playerHealth, healingPotion, healingpotionQuantity, playerName, playerMaxHealth, player
+    global debug, enemy_ID, player, expert_mode_enabled, player_expert_cache
     warp_location = input("\n== WARP ==\nType the location you wish to warp to, or type 'end' to quit. Upon warping to a function, debug mode will be\n"
                      "enabled automatically.\n\nWarp to where? ")
     if debug == 0:
@@ -4255,21 +4227,22 @@ def warp_debug():
     elif warp_location == 'battle':
         choice = input("Type the class of enemy to test (case sensitive:) ")
         enemy_ID = int(input("Type an int value to assign to enemy_ID: "))
-        print(player.get_defensive_items())
         encounter_enemy(choice)
     elif warp_location == "chapter":
         warp_to_chapter(save_location=int(input("Enter a value for save_location: ")))
     elif warp_location == "crash":
         handle_error(description="Sample description generated by debug_warp", e="Sample traceback")
         warp_debug()
-    elif warp_location == "data":
-        print("\nManually running data format daemon...")
-        data_format_daemon()
-        print("Done!")
+    elif warp_location == "expert":
+        expert_mode_enabled = True
+        print("\n== Expert mode enabled - select a chapter to test ==")
+        chapter_replay()
         warp_debug()
-    elif warp_location == 'chest':
-        search_chest(chest_contents=input('Enter chest contents: '))
-        warp_debug()
+    elif warp_location == 'expert complete':
+        player = Player(500, 20, 20, 'dummy', inventory={'Healing Potion': 5, 'Hyper Potion': 1, 'Smokescreen': 3}, defensive_items=['Shard of Glass'], has_beaten_game=True, has_completed_expert_mode=False, save_location=7)
+        player_expert_cache = player
+        expert_mode_enabled = True
+        game_credits()
     else:
         print("'" + warp_location + "' is not a recognised function or warp location. Check spelling and try again.\n")
         warp_debug()
@@ -4740,26 +4713,6 @@ def ask_basic_graphics():
         graphics_settings()
 
 
-def disable_classic_theme():
-    global basic_graphics_enabled, classic_theme_enabled
-    try:
-        choice = int(input("\nThe Flow theme is the default visual style of DeathTrap Dungeon. Featuring solid, clean lines\nand subtle but stylish gradients, Flow is a modern re-imagining of the classic DeathTrap Dungeon menu design.\n\nUse this theme?\n1] Yes\n2] No\n--> "))
-        if choice == 1:
-            print("Applying theme...")
-            classic_theme_enabled = False
-            save_settings('graphics_configuration', [basic_graphics_enabled, classic_theme_enabled])
-            print("\nFlow Theme has been enabled.")
-            time.sleep(0.5)
-            graphics_settings()
-        elif choice == 2:
-            graphics_settings()
-        else:
-            invalid_selection_message()
-            graphics_settings()
-    except ValueError:
-        disable_classic_theme()
-
-
 def apply_new_theme(theme_to_apply):
     global active_theme, basic_graphics_enabled
     theme_description = "None specified"    # A brief description of the theme that is shown to the user before they apply it.
@@ -4768,14 +4721,18 @@ def apply_new_theme(theme_to_apply):
     elif theme_to_apply == 'classic':
         theme_description = "\nClassic Theme is a throwback to older versions of DeathTrap Dungeon. Making use of simplistic characters,\nClassic Theme transforms the look and feel of the game and is perfect for those who prefer the\nmore simplistic look of the menus in older versions of DeathTrap Dungeon."
     elif theme_to_apply == 'basic':
-        theme_description = "\nBasic Theme is a variation of the Flow theme. Making use of more simplistic characters, this theme is\nperfect for those who want a modern looking theme that is easy on the eyes."
+        theme_description = "\nFlow Basic is a variation of the Flow theme. Making use of more simplistic characters, this theme is\nperfect for those who want a modern looking theme that is easy on the eyes!"
     try:
         choice = int(input(f"{theme_description}\n\nUse this theme?\n1] Yes\n2] No\n--> "))
         if choice == 1:
             print("Applying theme...")
             active_theme = theme_to_apply
+            if theme_to_apply == 'basic':
+                theme_to_apply = 'flow basic'
+            elif theme_to_apply == 'classic':
+                theme_to_apply = 'classic theme'
             save_settings('graphics_configuration', [active_theme, basic_graphics_enabled])
-            print(f"{active_theme.title()} has been enabled.")
+            print(f"{theme_to_apply.title()} has been applied.")
             time.sleep(0.5)
             switch_theme_dialogue()
         elif choice == 2:
@@ -4787,36 +4744,17 @@ def apply_new_theme(theme_to_apply):
         apply_new_theme(theme_to_apply)
 
 
-def enable_classic_theme():
-    global active_theme
-    if active_theme == 'classic':
-        disable_classic_theme()
-    try:
-        choice = int(input("\nClassic Theme is a throwback to older versions of DeathTrap Dungeon. Making use of simplistic characters,\nClassic Theme transforms the look and feel of the game and is perfect for those who prefer the\nmore simplistic look of the menus in older versions of DeathTrap Dungeon.\n\nUse this theme?\n1] Yes\n2] No\n--> "))
-        if choice == 1:
-            print("Applying theme...")
-            active_theme = 'classic'
-            save_settings('graphics_configuration', [basic_graphics_enabled, classic_theme_enabled])
-            print("\nClassic Theme has been enabled.")
-            time.sleep(0.5)
-            graphics_settings()
-        else:
-            graphics_settings()
-    except ValueError:
-        enable_classic_theme()
-
-
 def switch_theme_dialogue():
     global classic_theme_enabled, basic_graphics_enabled, active_theme
     print(generate_header("CHANGE THEME"))
     flow_selection = "1] Flow (default) [ ]"
-    basic_selection = "2] Basic Theme [ ]"
+    basic_selection = "2] Flow Basic [ ]"
     classic_selection = "3] Classic Theme [ ]"
     print("Select the theme you'd like to use from the list below. Themes completely transform the look and \nfeel of menus, but do not affect in-game graphics.")
     if active_theme == 'classic':
         classic_selection = "3] Classic Theme [*]"
     elif active_theme == 'basic':
-        basic_selection = "2] Basic Theme [*]"
+        basic_selection = "2] Flow Basic [*]"
     else:
         flow_selection = "1] Flow (default) [*]"
     print(f"{flow_selection}\n{basic_selection}\n{classic_selection}")
@@ -4858,17 +4796,17 @@ def graphics_settings():
         print(generate_seperator())
     try:
         choice = int(input("3] Cancel\n--> "))
+        if choice == 1:
+            switch_theme_dialogue()
+        elif choice == 3:
+            print(" ")
+            settings()
+        elif choice == 2:
+            ask_basic_graphics()
+        else:
+            raise ValueError
     except ValueError:
-        graphics_settings()
-    if choice == 1:
-        switch_theme_dialogue()
-    elif choice == 3:
-        print(" ")
-        settings()
-    elif choice == 2:
-        ask_basic_graphics()
-    else:
-        print("I don't understand.")
+        invalid_selection_message()
         graphics_settings()
 
 
@@ -4985,10 +4923,14 @@ def refresh():
             print("Working...")
             count = 0
             files_to_remove = ["savedprefs.dat", "displaysettings.dat", "crash.log", "graphicsproperties.dat",
-                               "updateprefs.dat", "startup.dat"]    # List of files that aren't necessary.
+                               "updateprefs.dat", "startup.dat", "config/updateprefs.dat", "config/update_configuration.dat",
+                               "temp/latest_stable_ver.txt", "sdbackup.dat", "sdbackup2.dat", "sdbackup3.dat"]    # List of files that aren't necessary.
             for file in files_to_remove:
-                os.remove(file)  # Remove the item
-                count += 1  # Increment a count to display to the user.
+                try:
+                    os.remove(file)  # Remove the item
+                    count += 1  # Increment a count to display to the user.
+                except Exception:
+                    pass
             if count == 1:
                 print("Refresh complete! " + str(count) + " unneeded file was erased.")
             else:
