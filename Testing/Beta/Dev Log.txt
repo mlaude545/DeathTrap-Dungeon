@@ -98,3 +98,5 @@ Key- [x] = A patch for this bug has been implemented.
 - During battles, enemies and players can show as having negative health.(MINOR) []
 - Loaf of bread in Chapter 4 doesn't report that the player's health has been restored. (MINOR VISUAL) []
 - Chapters 5, 6, and 7 show enemy_ID instead of the word 'area' sometimes. (MINOR VISUAL) []
+- Chapter 7 - healing potion gets added to defensive items. (MAJOR) []
+- Chapter 7 - guard doesn't stay dead!! Player gets softlocked because they can't progress past the guard. (MAJOR) []
