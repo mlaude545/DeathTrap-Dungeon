@@ -97,3 +97,4 @@ Key- [x] = A patch for this bug has been implemented.
 - The game crashes on startup if auto updates are enabled when you're connected to a network that can't provide internet. []
 - During battles, enemies and players can show as having negative health.[]
 - Loaf of bread in Chapter 4 doesn't report that the player's health has been restored. []
+- Chapter 5 shows enemy_ID instead of the word 'area'. []
