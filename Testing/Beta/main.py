@@ -105,7 +105,7 @@ no_pygame = False
 if not no_pygame:
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
-# Identify the host machine's operating system
+# Identify the host operating system
 if platform.system() == "Windows":
     try:
         os.system('mode con: cols=155 lines=50')    # Resize the game window on Windows-based computers
@@ -113,6 +113,8 @@ if platform.system() == "Windows":
         pass
 
 # Load graphics settings, and then apply them.
+# The current implementation for loading config files is pretty messy - I want to implement a function that
+# opens all the configs in one go, but this works and will do for now.
 try:
     with open('config/graphics_configuration.dat', 'rb') as f:
         active_theme, basic_graphics_enabled = pickle.load(f)
@@ -165,13 +167,13 @@ def generate_header(title):  # This function is used throughout the game to rend
     return header   # Return the generated header.
 
 
-def generate_seperator():
+def generate_seperator():       # A basic function that generates separators used in UIs.
     global active_theme
-    menu_bar = r'██████████████████████████████████'
+    menu_bar = r'██████████████████████████████████'    # Separator in the Flow style.
     if active_theme == 'basic':
-        menu_bar = r'=================================='
+        menu_bar = r'=================================='    # Separator in the Basic style.
     elif active_theme == 'classic':
-        menu_bar = None
+        menu_bar = None     # Classic theme doesn't use separators, so set the value to None.
     return menu_bar
 
 
@@ -958,9 +960,9 @@ def ask_download_update(method_of_access, contents):
     elif method_of_access == 'manual' and not generate_seperator():
         options = str("1] Download update\n2] Cancel")
     elif method_of_access == 'auto' and generate_seperator():
-        options = str(f"1] Download Update\n2] Skip For Now\n{generate_seperator()}\n3] Skip and Don't Ask Again")
+        options = str(f"1] Download Update\n2] Skip\n{generate_seperator()}\n3] Skip and Don't Ask Again")
     else:
-        options = str(f"1] Download Update\n2] Skip For Now\n3] Skip and Don't Ask Again")
+        options = str(f"1] Download Update\n2] Skip\n3] Skip and Don't Ask Again")
     print(f"{generate_header('UPDATE AVAILABLE')}\nA new version of DeathTrap Dungeon (v{new_version_number}) is available!\n{options}")
     try:
         choice = int(input("--> "))
@@ -1071,12 +1073,12 @@ if not os.path.isdir('sfx') and not no_pygame:      # This runs on startup and c
 
 if sound_directory_error is False and no_pygame is False:
     try:
-        with open('config/savedprefs.dat', 'rb') as f:
+        with open('config/audio_settings.dat', 'rb') as f:
             mute_audio = pickle.load(f)
     except FileNotFoundError:
         pass
     except pickle.UnpicklingError or ValueError or EOFError:
-        os.remove('config/savedprefs.dat')
+        os.remove('config/audio_settings.dat')
     if mute_audio == [True]:
         mute_audio = True
     if mute_audio == [False]:
@@ -2154,7 +2156,7 @@ def obtain_dropped_item(sprite, item_description, item_name, item_attack_increme
                 ask_view_stats()
             else:
                 print("\nYou obtained the "+str(item_name)+"!")
-                if item_name != "hyper potion" or item_name != "healing potion":
+                if item_name.lower() != "hyper potion" or item_name.lower() != "healing potion":
                     player.update_defensive_items(str(item_name))
                     if item_attack_increment != 0:  # If the item increases attack power, update player stats accordingly
                         player.gain_attack(int(item_attack_increment))
@@ -4469,38 +4471,37 @@ works here really nicely.
 def sound_test():
     print(generate_header("SOUND TEST"))
     try:
-        pygame.mixer.music.load("sfx/groov.ogg")
+        pygame.mixer.music.load("sfx/exploration.ogg")
     except Exception as e:
         description = "The test audio could not be loaded."
         handle_error(description, e)
         audio_settings()
     pygame.mixer.music.play(15)
-    print("Can you hear a tune playing? If so, sound should be working.\n1] I hear a tune\n2] I can't hear anything")
+    print("Can you hear a tune playing?\n1] Yes\n2] No\n3] Cancel")
     try:
         choice = int(input("--> "))
+        pygame.mixer.music.stop()
+        if choice == 1:
+            print("Great, sound is configured and working properly!")
+            audio_settings()
+        elif choice == 2:
+            print("\nHere are some things you can try:\n-Ensure volume is turned up on your device\n-Restart the program\n-Reinstall pygame (Source code users only)\n-Ensure audio isn't muted in the game\n-Ensure the game's audio files have been downloaded and saved in the same folder as the Python script\n-Uninstall and reinstall the program (Windows users only)\n\nIf none of the above steps work for you, reach out! Use the 'Report a bug' feature in the 'Settings' menu in order to report a bug.")
+            audio_settings()
+        elif choice == 3:
+            audio_settings()
+        else:
+            raise ValueError
     except ValueError:
         pygame.mixer.music.stop()
-        audio_settings()
-    if choice == 1:
-        print("Great, sound is configured and working properly!")
-        time.sleep(0.2)
-        pygame.mixer.music.stop()
-        audio_settings()
-    elif choice == 2:
-        pygame.mixer.music.stop()
-        print(
-            "\nHere are some things you can try:\n-Ensure volume is turned up on your device\n-Restart the program\n-Reinstall pygame (Source code users only)\n-Ensure audio isn't muted in the game\n-Ensure the game's audio files have been downloaded and saved in the same folder as the Python script\n-Uninstall and reinstall the program (Windows users only)\n\nIf none of the above steps work for you, reach out! Use the 'Report a bug' feature in the 'Settings' menu in order to report a bug.")
-        audio_settings()
-    else:
-        pygame.mixer.music.stop()
+        invalid_selection_message()
         sound_test()
 
 
 def audio_settings():
     global sound_directory_error, basic_graphics_enabled, classic_theme_enabled, mute_audio, no_pygame
-    sound_error_message = "the Pygame module could not be imported"
+    sound_error_message = "the Pygame module could not be imported" # Gives the user a reason for not being able to unmute audio. By default, this variable is set to the message shown when Pygame isn't installed.
     if sound_directory_error:
-        sound_error_message = "audio data could not be accessed"
+        sound_error_message = "audio data could not be accessed"    # Change the error message shown if the audio data couldn't be accessed.
     print(generate_header("SOUND SETTINGS"))
     if mute_audio is True:
         print("1] Unmute audio\n2] Test audio")
@@ -4516,7 +4517,7 @@ def audio_settings():
     if choice == 1 and mute_audio is not True:
         if mute_audio != True:
             mute_audio = True
-            save_settings('savedprefs', [mute_audio])
+            save_settings('audio_settings', [mute_audio])
             print("Audio has been muted.")
             audio_settings()
     elif choice == 1 and mute_audio is True:
@@ -4525,7 +4526,7 @@ def audio_settings():
             audio_settings()
         else:
             mute_audio = False
-            save_settings('savedprefs', [mute_audio])
+            save_settings('audio_settings', [mute_audio])
             print("Audio has been unmuted.")
             audio_settings()
     elif choice == 2:
@@ -4854,47 +4855,18 @@ def bug_report():
 
 
 def apply_default_settings():
-    global no_pygame, auto_applied_basic_graphics
-    skipAudioReset = False
+    global no_pygame, auto_applied_basic_graphics, sound_directory_error
     try:
         choice = int(input("\nAll settings will be reset to default, are you sure you'd like to continue?\n1] Yes\n2] No\n--> "))
         if choice == 1:
             print("Resetting...")
-            if not no_pygame:
-                mute_audio = False
-                with open('config/savedprefs.dat', 'wb') as f:
-                    pickle.dump([mute_audio], f, protocol=2)
-            else:
-                skipAudioReset = True
-            if not auto_applied_basic_graphics:
-                basic_graphics_enabled = False
-            else:
-                basic_graphics_enabled = True
-            with open('config/graphics_configuration.dat', 'wb') as f:
-                pickle.dump([basic_graphics_enabled, classic_theme_enabled], f, protocol=2)
-            smallerDisplay = False
-            with open('config/displaysettings.dat', 'wb') as f:
-                pickle.dump([smallerDisplay], f, protocol=2)
-            auto_updates_disabled = False
-            with open('config/updateprefs.dat', 'wb') as f:
-                pickle.dump([auto_updates_disabled], f, protocol=2)
-            if os.path.exists('themes.dat'):
-                try:
-                    os.remove('themes.dat')
-                except Exception:
-                    pass
-            disable_critical = False
-            player_only_critical = False
-            enemy_only_critical = False
-            disableOverwrite = False
-            skip_overwrite_confirmation = False
-            with open('config/gameplay_settings.dat', 'wb') as f:
-                pickle.dump(
-                    [disable_critical, player_only_critical, enemy_only_critical, disableOverwrite,
-                     skip_overwrite_confirmation], f,
-                    protocol=2)
-            time.sleep(1.3)
-            if skipAudioReset is False and auto_applied_basic_graphics is False:
+            try:
+                cwd = os.getcwd()
+                if os.path.exists(cwd+'/config'):
+                    os.remove(cwd+"/config/*")
+            except Exception as e:
+                print(e)
+            if not no_pygame and not sound_directory_error and not auto_applied_basic_graphics:
                 print("All settings have been reset to default.")
                 time.sleep(0.5)
                 advanced_settings()
@@ -4902,10 +4874,11 @@ def apply_default_settings():
                 print("\nThe following settings couldn't be reset:")
                 if auto_applied_basic_graphics:
                     print("- Basic Graphics mode could not be disabled because your system can't render standard graphics.")
-                if skipAudioReset:
+                if sound_directory_error:
                     print("- Audio could not be unmuted because the Pygame module is not installed.")
-                print(
-                    "\nFor more information, please visit the DTD Help Page at: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
+                if sound_directory_error:
+                    print("- Audio could not be unmuted because there was an error accessing audio data.")
+                print("\nFor more information, please visit the DTD Help Page at: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
                 print("\nAll other settings were successfully reset.")
                 time.sleep(0.5)
                 advanced_settings()
