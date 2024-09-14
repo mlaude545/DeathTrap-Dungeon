@@ -95,3 +95,4 @@ Key- [x] = A patch for this bug has been implemented.
 - If you access the game info screen with the Basic theme active, this causes a mishmash of different themes to apply. [x]
 - 'Skip and Don't Ask Again' option doesn't disable auto updates as it should. [x]
 - The game crashes on startup if auto updates are enabled when you're connected to a network that can't provide internet. []
+- During battles, enemies and players can show as having negative health.[]
