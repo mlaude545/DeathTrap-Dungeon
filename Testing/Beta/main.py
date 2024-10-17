@@ -21,7 +21,7 @@ from datetime import datetime
 
 # Initialise global variables
 current_version = "3.0.0"  # Version of this release of DTD, used when checking for updates.
-internal_identifier = "DTD v3.0.0 BETA\nBuild 310824"   # A more human-readable version identifier, which is shown to the user.
+internal_identifier = "DTD v3.0.0 BETA\nBuild 171024"   # A more human-readable version identifier, which is shown to the user.
 checked_for_update = False  # This changes to True after the game has completed an auto update check.
 is_beta = True   # Set this to True if this is a beta copy of DTD, otherwise it should be False.
 refreshed_latest_release_ver = False    # This is used when the user initiates an update check. It ensures that the game refreshes to have the latest version number available from the online repo.
@@ -462,6 +462,7 @@ class Player:
         return
 
     def update_inventory(self, item_name, quantity=1):  # Add an item to the player's inventory.
+        item_name = item_name.title()   # Capitalise the item name - if this method receives the item name in lowercase, it doesn't get recognised as a valid item.
         if item_name in self.inventory:
             self.inventory[item_name] += quantity
         else:
@@ -2151,21 +2152,21 @@ def obtain_dropped_item(sprite, item_description, item_name, item_attack_increme
     try:
         choice = int(input("\nThe guard drops a "+str(item_name)+". Pick it up?\n1] Yes\n2] No\n--> "))
         if choice == 1:
-            if item_name in player_held_defensive_items:    # If the player is already holding this item, don't let them get it a second time.
+            if item_name in player_held_defensive_items or item_name.title() in player_held_defensive_items:    # If the player is already holding this item, don't let them get it a second time.
                 print("\nYou already have this item, you can't carry a second!")
                 ask_view_stats()
             else:
                 print("\nYou obtained the "+str(item_name)+"!")
-                if item_name.lower() != "hyper potion" or item_name.lower() != "healing potion":
-                    player.update_defensive_items(str(item_name))
+                if item_name.lower() == "hyper potion" or item_name.lower() == "healing potion":
+                    player.update_inventory(item_name)  # Add inventory items to the player's inventory.
+                elif item_name == "loaf of bread":
+                    player.restore_health()     # Restore health if the item obtained was a healing item.
+                else:
+                    player.update_defensive_items(str(item_name))   # If the item gained wasn't an inventory or healing item, then it was a defensive item - update accordingly.
                     if item_attack_increment != 0:  # If the item increases attack power, update player stats accordingly
                         player.gain_attack(int(item_attack_increment))
-                    if item_defense_increment != 0: # Same as above, but for items that affect defense.
+                    if item_defense_increment != 0:  # Same as above, but for items that affect defense.
                         player.gain_defence(int(item_defense_increment))
-                elif item_name == "loaf of bread":
-                    player.restore_health()
-                else:
-                    player.update_inventory(item_name)
                 time.sleep(1)
                 print(sprite)
                 time.sleep(1)
@@ -2191,7 +2192,7 @@ def enemy_defeated(enemy_type, enemy_object, battle_logic, audio_lockout):  # Lo
         enemy_item = enemy_object.get_held_item()   # Get the item that the defeated enemy was holding.
         dropped_item = Items(str(enemy_item))   # Create an object using the Items class from the held item.
         if not basic_graphics_enabled:
-            sprite = dropped_item.get_item_sprite() # Show the item sprite.
+            sprite = dropped_item.get_item_sprite()     # Show the item sprite.
         else:
             sprite = dropped_item.get_basic_sprite()    # Same as above, but for basic graphics mode.
         item_defense_increment = dropped_item.get_defense_increment()   # Get the defense value of the item.
@@ -2786,12 +2787,12 @@ def chapter_7_continue_choice():
 
 
 def chest7():
-    global searchedChest7mk2
+    global single_use_items
     try:
         choice = int(input("\nYou refocus your attention to the chest in the corner. Would you like to search it [1], or ignore it [2]? "))
         if choice == 1:
             if search_chest('Healing Potion'):
-                searchedChest7mk2 = True
+                single_use_items.append('chapter_7_chest_2')
                 print("\nYou return to the previous area where the paths split.")
                 time.sleep(1.5)
                 chapter_7_split()
@@ -2806,11 +2807,10 @@ def chest7():
 
 
 def chapter_7_chest():
-    global searchedChest7, pickedUpKey
-    if not searchedChest7:
+    global single_use_items
+    if 'chapter_7_key' not in single_use_items:
         if search_chest('Key'):
-            searchedChest7 = True
-            pickedUpKey = True
+            single_use_items.append("chapter_7_key")
             chapter_7_continue_choice()
         else:
             print("\nYou do not take the Key.")
@@ -2821,56 +2821,56 @@ def chapter_7_chest():
 
 
 def chapter_7_split():
-    global discoveredChapterSevenDoor, defeatedChapterSevenGuard, enemy_ID, pickedUpKey, player
+    global enemies_defeated, enemy_ID, single_use_items, player
     try:
         choice = int(input("\nEventually, you come to a split; you can either go left [1] or right [2] "))
+        if choice == 1 and 7 not in enemies_defeated:
+            print(
+                "\nYou head left! As you trudge down the blinding corridor, you begin to see a faint figure in the distance... It's a guard!")
+            time.sleep(1.5)
+            print(
+                "\nYou turn to run, but it's too late! The pounding of heavy boots reverberates around you, and you feel a hand on your shoulder...")
+            time.sleep(0.8)
+            enemy_ID = 7
+            encounter_enemy('guard')
+        elif choice == 1 and 7 in enemies_defeated:
+            print("\nYou go left once again. The guard still lays defeated on the floor. You step over him.")
+            time.sleep(1.5)
+            print(
+                "\nYou proceed down the corridor, and eventually come to a door. You push it, and it effortlessly glides open.")
+            time.sleep(1.5)
+            print("\nBehind this door is a chest, along with a corridor that leads off into the distance.")
+            time.sleep(1.5)
+            print(
+                "\nThis corridor is a complete departure from the area you're in now; the walls are stony once again, and water drips from the ceiling.")
+            time.sleep(1.5)
+            print("\nThere is also no light at all. You shudder. This corridor gives off an extremely unnerving vibe.")
+            chapter_7_chest()
+        elif choice == 2 and 'chapter_7_key' in single_use_items:
+            print("\nYou head right! As you round a corner, you come to a thick-looking metal door.")
+            time.sleep(1.5)
+            print("\nYou push on it, but as expected, it doesnt budge.")
+            time.sleep(1.5)
+            print("\nSuddenly, you remember the key you found in the chest! You raise the key to the door and turn it...")
+            time.sleep(1.5)
+            print("\n... And... Success! The door unlocks.")
+            time.sleep(1.5)
+            print(
+                "\nBehind the door, you find a small room with a chest in one corner. A loaf of bread also sits on the floor. It's a little mouldy, but\nit's food. You eat it.")
+            time.sleep(1.5)
+            print("\nHealth has been fully restored!")
+            player.restore_health()
+            chest7()
+        else:
+            print("\nYou head right! As you round a corner, you come to a thick-looking metal door.")
+            time.sleep(1.5)
+            print("\nYou push on it, but as expected, it doesnt budge at all. Could the key be nearby?")
+            time.sleep(1.5)
+            print("\nOut of ideas for now, you return to the previous area where the paths split.")
+            time.sleep(1.5)
+            single_use_items.append('chapter_7_door')
+            chapter_7_split()
     except ValueError:
-        chapter_7_split()
-    if choice == 1 and defeatedChapterSevenGuard is not True:
-        print(
-            "\nYou head left! As you trudge down the blinding corridor, you begin to see a faint figure in the distance... It's a guard!")
-        time.sleep(1.5)
-        print(
-            "\nYou turn to run, but it's too late! The pounding of heavy boots reverberates around you, and you feel a hand on your shoulder...")
-        time.sleep(0.8)
-        enemy_ID = 7
-        encounter_enemy('guard')
-    elif choice == 1 and defeatedChapterSevenGuard is True:
-        print("\nYou go left once again. The guard still lays defeated on the floor. You step over him.")
-        time.sleep(1.5)
-        print(
-            "\nYou proceed down the corridor, and eventually come to a door. You push it, and it effortlessly glides open.")
-        time.sleep(1.5)
-        print("\nBehind this door is a chest, along with a corridor that leads off into the distance.")
-        time.sleep(1.5)
-        print(
-            "\nThis corridor is a complete departure from the enemy_ID you're in now; the walls are stony once again, and water drips from the ceiling.")
-        time.sleep(1.5)
-        print("\nThere is also no light at all. You shudder. This corridor gives off an extremely unnerving vibe.")
-        chapter_7_chest()
-    elif choice == 2 and pickedUpKey is True:
-        print("\nYou head right! As you round a corner, you come to a thick-looking metal door.")
-        time.sleep(1.5)
-        print("\nYou push on it, but as expected, it doesnt budge.")
-        time.sleep(1.5)
-        print("\nSuddenly, you remember the key you found in the chest! You raise the key to the door and turn it...")
-        time.sleep(1.5)
-        print("\n... And... Success! The door unlocks.")
-        time.sleep(1.5)
-        print(
-            "\nBehind the door, you find a small room with a chest in one corner. A loaf of bread also sits on the floor. It's a little mouldy, but\nit's food. You eat it.")
-        time.sleep(1.5)
-        print("\nHealth has been fully restored!")
-        player.restore_health()
-        chest7()
-    else:
-        print("\nYou head right! As you round a corner, you come to a thick-looking metal door.")
-        time.sleep(1.5)
-        print("\nYou push on it, but as expected, it doesnt budge at all. Could the key be nearby?")
-        time.sleep(1.5)
-        print("\nOut of ideas for now, you return to the previous enemy_ID where the paths split.")
-        time.sleep(1.5)
-        discoveredChapterSevenDoor = True
         chapter_7_split()
 
 
@@ -3173,7 +3173,7 @@ def chapter_5_return_courtyard():
             time.sleep(1)
             print("\nYou lie dazed on the floor. The door is still firmly shut. You curse and get back to your feet.")
             time.sleep(1)
-            print("\nOut of ideas for now, you decide to head back to the main enemy_ID to explore further.")
+            print("\nOut of ideas for now, you decide to head back to the main area to explore further.")
             enemies_defeated.append(enemy_ID)
             courtyard()
     except ValueError:
