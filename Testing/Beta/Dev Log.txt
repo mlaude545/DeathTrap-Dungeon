@@ -4,7 +4,7 @@ This file is intended to help with the development of DTD v3.0.0. It contains th
 - TO DO = A list of things that are currently in the works. The comments in [square brackets] are the current state of the implementation.
 - CANCELLED FEATURES = A list of features that were planned to be in the final release, but were removed. This list is subject to change and the features could get re-added in future releases.
 - COMPLETED FEATURES / PATCHES = A non-comprehensive list of completed features - a full list of implementations can be found in the final version's changelog.
-- KNOWN BUGS = This list is specific to the current beta; a full list of bugfixes for DTD v3.0.0 can be found in the changelog.
+- KNOWN BUGS = This list mainly contains regressions introduced in beta builds. For bugs patched from the last stable release (v2.9.5), check the changelog.
 
 
 TO DO:
@@ -90,9 +90,9 @@ Key- [x] = A patch for this bug has been implemented.
 - If you aren't holding any inventory items, a message displaying this should be shown in the save file preview - currently nothing is shown. (MINOR VISUAL) [x]
 - Chapter 2 is extremely unstable and crashes if you look at it wrong. (MAJOR - CRASH) [x]
 - Fix a small graphical bug that causes a block character to appear when the game is started. (MINOR VISUAL) [x]
-- If Basic Graphics mode is enabled automatically, the active theme is shown as Flow in the 'choose a new theme' dialogue. (MINOR VISUAL) [x]
+- If Basic Graphics is enabled automatically, the active theme is still shown as Flow in the 'choose a new theme' dialogue. (MINOR VISUAL) [x]
 - Auto update check is skipped entirely if you don't have an active internet connection - it doesn't check the cached file as intended. (MINOR) [x]
-- If you access the game info screen with the Basic theme active, this causes a mishmash of different themes to apply. (MINOR VISUAL) [x]
+- If you access the game info screen with the Basic theme active, this causes a mishmash of different themes to apply across the game after this. (MINOR VISUAL) [x]
 - 'Skip and Don't Ask Again' option doesn't disable auto updates as it should. (MINOR) [x]
 - The game crashes on startup if auto updates are enabled when you're connected to a network that can't provide internet. (MAJOR - CRASH)[]
 - During battles, enemies and players can show as having negative health.(MINOR VISUAL) []
