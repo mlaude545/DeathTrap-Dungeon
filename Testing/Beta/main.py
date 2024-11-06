@@ -21,7 +21,7 @@ from datetime import datetime
 
 # Initialise global variables
 current_version = "3.0.0"  # Version of this release of DTD, used when checking for updates.
-internal_identifier = "DTD v3.0.0 BETA\nBuild 171024"   # A more human-readable version identifier, which is shown to the user.
+internal_identifier = "DTD v3.0.0 BETA\nBuild 061124"   # A more human-readable version identifier, which is shown to the user.
 checked_for_update = False  # This changes to True after the game has completed an auto update check.
 is_beta = True   # Set this to True if this is a beta copy of DTD, otherwise it should be False.
 refreshed_latest_release_ver = False    # This is used when the user initiates an update check. It ensures that the game refreshes to have the latest version number available from the online repo.
@@ -839,8 +839,8 @@ def get_diagnostics():  # This function gathers diagnostic data. This data is sh
 
 
 def handle_error(description, e):  # This function displays error messages, taking basic and advanced error info as parameters to display to the user.
-    print(generate_header("OOPS! AN ERROR OCCURRED"))
-    print("Sorry, an error has occurred. Here's what we know:\n\nDETAILS: "+str(description)+"\nTECHNICAL: "+str(e))
+    print(generate_header("SORRY"))
+    print("An error has occurred. You can see details of the error below:\n\nDETAILS: "+str(description)+"\nTECHNICAL: "+str(e))
     print("\nNeed some help? Choose an option below. If this issue seems to be a bug, please report it.")
     try:
         choice = int(input("1] Get Help Online\n2] Report a Bug\n3] Cancel\n--> "))
@@ -849,7 +849,7 @@ def handle_error(description, e):  # This function displays error messages, taki
         elif choice == 2:
             launch_bug_report(get_diagnostics(), description, e)
         elif choice == 3:
-            pass
+            pass    # We can just do nothing for the cancel option, as the function that originally called this function links to something after it as a fallback.
         else:
             print("That's an invalid choice, try again.")
             handle_error(description, e)
@@ -961,10 +961,10 @@ def ask_download_update(method_of_access, contents):
     elif method_of_access == 'manual' and not generate_seperator():
         options = str("1] Download update\n2] Cancel")
     elif method_of_access == 'auto' and generate_seperator():
-        options = str(f"1] Download Update\n2] Skip\n{generate_seperator()}\n3] Skip and Don't Ask Again")
+        options = str(f"1] Download Update\n2] Cancel\n{generate_seperator()}\n3] Don't Ask Again")
     else:
-        options = str(f"1] Download Update\n2] Skip\n3] Skip and Don't Ask Again")
-    print(f"{generate_header('UPDATE AVAILABLE')}\nA new version of DeathTrap Dungeon (v{new_version_number}) is available!\n{options}")
+        options = str(f"1] Download Update\n2] Cancel\n3] Don't Ask Again")
+    print(f"{generate_header('UPDATE AVAILABLE')}\nA new version of DeathTrap Dungeon (v{new_version_number}) is available! You are currently on v{current_version}.\n{options}")
     try:
         choice = int(input("--> "))
         if choice == 1:
@@ -981,7 +981,7 @@ def ask_download_update(method_of_access, contents):
         elif choice == 2 and method_of_access == 'manual':
             software_update_settings()
         elif choice == 3 and method_of_access == 'auto':
-            print("\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by selecting 'Settings' on the main menu, then selecting 'Software Updates'.")
+            print("\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by going to Settings > Software Updates.")
             auto_updates_disabled = True
             save_settings('update_configuration', [auto_updates_disabled])
             menu()
@@ -2308,7 +2308,7 @@ def enemy_attack_player(enemy_type, enemy_object, battle_logic, audio_lockout):
     else:
         returned_value = enemy_object.get_attack()
     time.sleep(0.5)     # Add a slight delay, to help with reading.
-    print(str(attack_message)+str(enemy_friendly_name)+" attacks, dealing "+str(returned_value)+" damage!") # Format into a summary of the attack, which includes if a critical hit was landed and the amount of damage inflicted.
+    print(str(attack_message)+str(enemy_friendly_name)+" attacks, dealing "+str(returned_value)+" damage!")  # Format into a summary of the attack, which includes if a critical hit was landed and the amount of damage inflicted.
     player.sustain_damage(returned_value)
     time.sleep(0.5)
     print("\nYou have "+str(player.get_health())+" health remaining.")
@@ -2726,7 +2726,7 @@ def start_chapter_8():
     print("\nAfter what feels like an age of walking, you freeze.")
     time.sleep(1.5)
     print(
-        "\nA huge wooden door looms above you. Torches either side cast an eerie flickering glow over the enemy_ID around you.")
+        "\nA huge wooden door looms above you. Torches either side cast an eerie flickering glow over the area around you.")
     time.sleep(1.5)
     print("\nYou peer around, taking in this new morbid environment. You notice a chest to the left side of the door.")
     time.sleep(1.5)
@@ -2763,11 +2763,10 @@ def start_chapter_8():
 
 def chapter_7_continue_choice():
     global player, expert_mode_enabled
-    print(
-        "\nYou gaze down the long, dark corridor that lays ahead of you. A familiar feeling of terror hangs over you.")
+    print("\nYou gaze down the long, dark corridor that lays ahead of you. A familiar feeling of terror hangs over you.")
     time.sleep(1.5)
     try:
-        choice = int(input("\nAre you ready to proceed? You can't return to this enemy_ID later.\n1] Yes\n2] No\n--> "))
+        choice = int(input("\nAre you ready to proceed? You can't return to this area later.\n1] Yes\n2] No\n--> "))
         if choice == 1:
             print("\nYou proceed onwards, into the unknown...")
             time.sleep(1)
@@ -2823,7 +2822,7 @@ def chapter_7_chest():
 def chapter_7_split():
     global enemies_defeated, enemy_ID, single_use_items, player
     try:
-        choice = int(input("\nEventually, you come to a split; you can either go left [1] or right [2] "))
+        choice = int(input("\nYou are standing at a fork in the path forward; you can either go left [1] or right [2] "))
         if choice == 1 and 7 not in enemies_defeated:
             print(
                 "\nYou head left! As you trudge down the blinding corridor, you begin to see a faint figure in the distance... It's a guard!")
@@ -4213,10 +4212,10 @@ package of what appears to be food through the opening and promptly slams the ha
 
 def warp_debug():
     global debug, enemy_ID, player, expert_mode_enabled, player_expert_cache
-    warp_location = input("\n== WARP ==\nType the location you wish to warp to, or type 'end' to quit. Upon warping to a function, debug mode will be\n"
+    warp_location = input("\nType the location you wish to warp to, or type 'end' to quit. Upon warping to a function, debug mode will be\n"
                      "enabled automatically.\n\nWarp to where? ")
     if debug == 0:
-        print("\n= DEBUG MODE ACTIVE =\n")
+        print("\n= Debug mode is active =\n")
         debug = 1
     player = Player(10, 200, 200, "test", inventory={'Healing Potion': 999, 'Hyper Potion': 1, 'Smokescreen': 3},
                     defensive_items=['dummy', 'dummy2'], has_beaten_game=False, has_completed_expert_mode=False, save_location=3)    # Create a dummy player so the game doesn't crash
@@ -4825,7 +4824,7 @@ def launch_bug_report(diagnostic_data, description, e):
     try:
         choice = int(input("\nThe above information contains important details (such as which version of DTD you are using), which\nmassively helps when fixing bugs. When you are ready to continue, select the relevant option below.\n\n1] I have copied it, continue\n2] Cancel\n--> "))
         if choice == 1:
-            webbrowser.open('https://reubenparfrey.wixsite.com/deathtrapdungeon/report-a-bug/') # Launch the bug report page.
+            webbrowser.open('https://github.com/mlaude545/DeathTrap-Dungeon/issues/new')    # Launch the bug report page.
         elif choice == 2:
             pass    # Do nothing - the function after this screen was called is loaded instead.
         else:
