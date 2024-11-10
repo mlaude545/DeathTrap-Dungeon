@@ -101,5 +101,6 @@ Key- [x] = A patch for this bug has been implemented.
 - Chapter 7 - healing potion gets added to defensive items list and not to inventory. (MAJOR) [x]
 - Chapter 7 - guard doesn't stay dead!! Player gets softlocked because they can't progress past the guard. (MAJOR) [x]
 - Restart from checkpoint crashes the game if Pygame is not installed. (MINOR CRASH) []
-- The diagnostic screen shown before reporting a bug does not respect Flow Basic theme. (MINOR VISUAL) []
+- The diagnostic screen shown before reporting a bug does not respect Flow Basic theme. (MINOR VISUAL) [x]
+- 'Default settings' option is currently broken. (MINOR USABILITY) []
 
