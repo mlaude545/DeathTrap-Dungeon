@@ -103,4 +103,5 @@ Key- [x] = A patch for this bug has been implemented.
 - Restart from checkpoint crashes the game if Pygame is not installed. (MINOR CRASH) []
 - The diagnostic screen shown before reporting a bug does not respect Flow Basic theme. (MINOR VISUAL) [x]
 - 'Default settings' option is currently broken. (MINOR USABILITY) []
+- Add 'graphics_configuration.dat' and 'audio_settings.dat' to the data format daemon @ line 897. []
 
