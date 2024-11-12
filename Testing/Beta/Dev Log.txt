@@ -104,4 +104,5 @@ Key- [x] = A patch for this bug has been implemented.
 - The diagnostic screen shown before reporting a bug does not respect Flow Basic theme. (MINOR VISUAL) [x]
 - 'Default settings' option is currently broken. (MINOR USABILITY) []
 - Add 'graphics_configuration.dat' and 'audio_settings.dat' to the data format daemon @ line 897. []
+- The game crashes if no name is entered when starting a new game. []
 
