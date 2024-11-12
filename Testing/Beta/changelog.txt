@@ -136,7 +136,7 @@ SMALLER FEATURES / QUALITY OF LIFE IMPROVEMENTS:
  re-written. (Like insanely faster - around 89% faster for the Windows version! *)
 
 - When a new version is available, the game now shows the new version number in
- the update dialogue.
+ the update dialogue. It also now shows the version of the game that you're currently on.
 
 - Moved several options around in the Settings menu, and renamed many options, to
  make the menu more approachable for new users.
