@@ -100,9 +100,9 @@ Key- [x] = A patch for this bug has been implemented.
 - Chapters 5, 6, and 7 show enemy_ID instead of the word 'area' sometimes. (MINOR VISUAL) [x]
 - Chapter 7 - healing potion gets added to defensive items list and not to inventory. (MAJOR) [x]
 - Chapter 7 - guard doesn't stay dead!! Player gets softlocked because they can't progress past the guard. (MAJOR) [x]
-- Restart from checkpoint crashes the game if Pygame is not installed. (MINOR CRASH) []
+- Restart from checkpoint crashes the game if Pygame is not installed. (MINOR CRASH) [x]
 - The diagnostic screen shown before reporting a bug does not respect Flow Basic theme. (MINOR VISUAL) [x]
-- 'Default settings' option is currently broken. (MINOR USABILITY) []
-- Add 'graphics_configuration.dat' and 'audio_settings.dat' to the data format daemon @ line 897. []
-- The game crashes if no name is entered when starting a new game. []
+- 'Default settings' option is currently broken. (MINOR USABILITY) [x]
+- Add 'graphics_configuration.dat' and 'audio_settings.dat' to the data format daemon @ line 897. [x]
+- The game crashes if no name is entered when starting a new game. [x]
 
