@@ -21,7 +21,7 @@ from datetime import datetime
 
 # Initialise global variables
 current_version = "3.0.0"  # Version of this release of DTD, used when checking for updates.
-internal_identifier = "DTD v3.0.0 BETA\nBuild 061124"   # A more human-readable version identifier, which is shown to the user.
+internal_identifier = "DTD v3.0.0 BETA Build 171124"   # A more human-readable version identifier, which is shown to the user.
 checked_for_update = False  # This changes to True after the game has completed an auto update check.
 is_beta = True   # Set this to True if this is a beta copy of DTD, otherwise it should be False.
 refreshed_latest_release_ver = False    # This is used when the user initiates an update check. It ensures that the game refreshes to have the latest version number available from the online repo.
@@ -835,7 +835,7 @@ def get_diagnostics():  # This function gathers diagnostic data. This data is sh
     if auto_updates_disabled:
         auto_updates_status = 'Disabled'
     diagnostic_data = [current_platform, pygame_ver, basic_graphics_enabled, friendly_active_theme, auto_updates_status]
-    return f"GENERAL:\nDTD Version: {general_data[0]}\nFriendlyName: {general_data[1]}\n\nDIAGNOSTIC:\nPlatform: {diagnostic_data[0]}\nPygame Version: {diagnostic_data[1]}\nBasic Graphics: {diagnostic_data[2]}\nActive Theme: {diagnostic_data[3]}\nAuto Updates: {diagnostic_data[4]}"
+    return f"GENERAL:\nDTD Version: {general_data[0]}\nInternal Identifier: {general_data[1]}\n\nDIAGNOSTIC:\nPlatform: {diagnostic_data[0]}\nPygame Version: {diagnostic_data[1]}\nBasic Graphics: {diagnostic_data[2]}\nActive Theme: {diagnostic_data[3]}\nAuto Updates: {diagnostic_data[4]}"
 
 
 def handle_error(description, e):  # This function displays error messages, taking basic and advanced error info as parameters to display to the user.
@@ -896,7 +896,7 @@ def generate_defensive_item_list(player_max_health, damage):
 
 def data_format_daemon():    # In previous versions of DTD, data and config files were stored in the current working directory, which was
     current_dir = os.getcwd()   # extremely messy. This function copies these files (if they exist) into directories.
-    known_config_files = ['updateprefs.dat', 'graphics_settings.dat', 'gameplay_settings.dat']
+    known_config_files = ['update_configuration.dat', 'graphics_configuration.dat', 'gameplay_settings.dat', 'audio_settings.dat']
     known_data_files = ['savedata.dat', 'savedata2.dat', 'savedata3.dat']
     if not os.path.exists(current_dir+'/config'):
         os.mkdir(current_dir+'/config')
@@ -1047,7 +1047,7 @@ def check_for_updates(method_of_access):
         ask_download_update(method_of_access, latest_stable_version)
     else:
         if method_of_access == 'manual':
-            print("\nYou're up to date! There are no new versions of DeathTrap Dungeon available at this time.")
+            print(f"\nYou're up to date! There are no new versions of DeathTrap Dungeon available at this time.")
             software_update_settings()
 
 
@@ -1681,7 +1681,10 @@ def stats_input_ask():
 
 
 def check_name_validity(entered_name):  # A simple function to check if an entered name is valid.
-    first_character = entered_name[0]   # Invalid names start with a blank character.
+    try:
+        first_character = entered_name[0]   # Invalid names start with a blank character.
+    except Exception:
+        return False
     if first_character == " ":
         return False    # Return False - prompt the player to choose a different name.
     else:
@@ -1835,7 +1838,8 @@ def restart_from_checkpoint():
             warp_to_chapter(
                 save_location)  # Pass the save location to the warp_to_chapter function - saves me having to repeat the warp logic every time it is needed.
         elif restart == 2:
-            pygame.mixer.music.stop()
+            if not mute_audio:
+                pygame.mixer.music.stop()
             menu()
         else:
             print("Please choose a valid option.\n")
@@ -2051,9 +2055,11 @@ def game_credits():
     if not mute_audio:
         pygame.mixer.music.fadeout(1000)
     player.game_beaten()    # Sets the attribute 'game_beaten' to true, so the game knows that the player has completed the story.
-    if expert_mode_enabled:
-        restore_cached_stats()
-    player.restore_health() # Restore health
+    if expert_mode_enabled:     # Some special configuration that only comes into play if expert mode is enabled:
+        restore_cached_stats()  # Restore the player's original stats and items to how they were before starting expert mode.
+        player.completed_expert_mode()  # This attribute is so the game knows if the player has completed expert mode.
+        expert_mode_enabled = False     # Finally disable expert mode to avoid issues.
+    player.restore_health()     # Restore health
     time.sleep(1)
     ask_save()
 
@@ -2124,7 +2130,7 @@ def ask_view_stats():
             print(generate_header('YOUR STATS'))
             player_name, player_health, player_max_health, player_attack_damage = player.get_stats()
             if expert_mode_enabled:
-                player_name += ' - Playing on Expert Mode'
+                player_name += ' - Playing on Expert Mode'  # Show an indicator when expert mode is enabled.
             defensive_items = player.get_defensive_items()
             print(f"YOU ({player_name})\nDEFENCE: {player_health}/{player_max_health}\nATTACK: {player_attack_damage}\nHOLDING:")
             if defensive_items is not None:
@@ -4813,13 +4819,10 @@ def graphics_settings():
 def launch_bug_report(diagnostic_data, description, e):
     global classic_theme_enabled
     bug_report_info = diagnostic_data   # Get diagnostic data, to display to the user.
-    default_style = '██████████████████████████████████'    # The header and footer bars, used to separate the diagnostic data from the rest of the prompt.
-    if active_theme == 'classic':
-        default_style = '=================================='    # Change the style of the header and footer bars if classic theme or basic graphics is enabled.
     if description and e is not None:   # Description and e are not none if this screen was accessed through the error handler.
-        bug_report_info = f"{default_style}\n{bug_report_info}\n\nERROR DETAILS:\n{description}\n{e}\n{default_style}" # Format the data - add header and footer bars, crash details, and diagnostic data.
+        bug_report_info = f"{generate_seperator()}\n{bug_report_info}\n\nERROR DETAILS:\n{description}\n{e}\n{generate_seperator()}"  # Format the data - add header and footer bars, crash details, and diagnostic data.
     else:
-        bug_report_info = f"{default_style}\n{bug_report_info}\n{default_style}"    # Again, format data - no crash details necessary here as this is what is shown when the user manually initiates a bug report through the Settings menu.
+        bug_report_info = f"{generate_seperator()}\n{bug_report_info}\n{generate_seperator()}"    # Again, format data - no crash details necessary here as this is what is shown when the user manually initiates a bug report through the Settings menu.
     print(f"\nPlease copy and paste the following into your bug report: \n\n{bug_report_info}\n")   # Print the formatted data along with a message.
     try:
         choice = int(input("\nThe above information contains important details (such as which version of DTD you are using), which\nmassively helps when fixing bugs. When you are ready to continue, select the relevant option below.\n\n1] I have copied it, continue\n2] Cancel\n--> "))
@@ -4862,7 +4865,7 @@ def apply_default_settings():
             try:
                 cwd = os.getcwd()
                 if os.path.exists(cwd+'/config'):
-                    os.remove(cwd+"/config/*")
+                    shutil.rmtree(cwd+"/config")
             except Exception as e:
                 print(e)
             if not no_pygame and not sound_directory_error and not auto_applied_basic_graphics:
@@ -4870,15 +4873,14 @@ def apply_default_settings():
                 time.sleep(0.5)
                 advanced_settings()
             else:
-                print("\nThe following settings couldn't be reset:")
+                print("\nAll settings were reset to default, except for the following:")
                 if auto_applied_basic_graphics:
-                    print("- Basic Graphics mode could not be disabled because your system can't render standard graphics.")
+                    print("- Basic Graphics mode couldn't be disabled because your system can't render standard graphics.")
+                if no_pygame:
+                    print("- Audio couldn't be unmuted because the Pygame module is not installed.")
                 if sound_directory_error:
-                    print("- Audio could not be unmuted because the Pygame module is not installed.")
-                if sound_directory_error:
-                    print("- Audio could not be unmuted because there was an error accessing audio data.")
-                print("\nFor more information, please visit the DTD Help Page at: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
-                print("\nAll other settings were successfully reset.")
+                    print("- Audio couldn't be unmuted because there was an error accessing audio data.")
+                print("\nFor more information, please visit: https://reubenparfrey.wixsite.com/deathtrapdungeon/help/")
                 time.sleep(0.5)
                 advanced_settings()
         else:
