@@ -951,19 +951,53 @@ def confirm_source_code(download_path, url):
         confirm_source_code(download_path, url)
 
 
+def view_release_notes(download_path, method_of_access, contents):
+    try:
+        with open(download_path, 'r') as f:
+            lines = f.readlines()
+        for line in lines:
+            print(line)
+            time.sleep(0.1)
+    except Exception as e:
+        description = "Encountered an issue whilst downloading or accessing the data. Try again, and if the issue persists, paste this link into a browser to\nview what's new manually: https://raw.githubusercontent.com/mlaude545/DeathTrap-Dungeon/refs/heads/main/OTA%20Resources/changelog.txt."
+        handle_error(description, e)
+        if method_of_access == 'auto':
+            menu()
+        else:
+            software_update_settings()
+    time.sleep(2)
+    ask_download_update(method_of_access, contents)
+
+
+def download_release_notes(method_of_access, contents):
+    url = 'https://raw.githubusercontent.com/mlaude545/DeathTrap-Dungeon/refs/heads/main/OTA%20Resources/changelog.txt'
+    download_path = os.getcwd()+'/temp/release_notes.txt'
+    print("Working...\n")
+    try:
+        urlretrieve(url, download_path)
+    except Exception as e:
+        description = 'General download error; try checking your internet connection.'
+        handle_error(description, e)
+        if method_of_access == 'auto':
+            menu()
+        else:
+            software_update_settings()
+    view_release_notes(download_path, method_of_access, contents)
+
+
 def ask_download_update(method_of_access, contents):
     global auto_updates_disabled
     new_version_number = str(contents)
     new_version_number = new_version_number.replace("b", "")
     new_version_number = new_version_number.replace("'", "")
     if method_of_access == 'manual' and generate_seperator():                    # Alter the wording of the options presented to the user slightly, depending
-        options = str(f"1] Download update\n{generate_seperator()}\n2] Cancel")  # on how the update check was initiated.
+        options = str(f"1] Download update\n2] What's new in the latest version?\n{generate_seperator()}\n3] Skip")  # on how the update check was initiated.
     elif method_of_access == 'manual' and not generate_seperator():
-        options = str("1] Download update\n2] Cancel")
+        options = str("1] Download update\n2] What's new in the latest version?\n3] Skip")
     elif method_of_access == 'auto' and generate_seperator():
-        options = str(f"1] Download Update\n2] Cancel\n{generate_seperator()}\n3] Don't Ask Again")
+        options = str(f"1] Download update\n2] What's new in the latest version?\n3] Skip\n{generate_seperator()}\n4] Don't ask again")
     else:
-        options = str(f"1] Download Update\n2] Cancel\n3] Don't Ask Again")
+        options = str(f"1] Download update\n2] What's new in the latest version?\n3] Skip\n4] Don't ask again")
     print(f"{generate_header('UPDATE AVAILABLE')}\nA new version of DeathTrap Dungeon (v{new_version_number}) is available! You are currently on v{current_version}.\n{options}")
     try:
         choice = int(input("--> "))
@@ -976,11 +1010,13 @@ def ask_download_update(method_of_access, contents):
                 download_path = str(Path.home() / "Downloads/DTD.py")
                 url = 'https://raw.githubusercontent.com/mlaude545/DeathTrap-Dungeon/main/Latest/DTD.py'
                 confirm_source_code(download_path, url)
-        elif choice == 2 and method_of_access == 'auto':
-            menu()
-        elif choice == 2 and method_of_access == 'manual':
-            software_update_settings()
+        elif choice == 2:
+            download_release_notes(method_of_access, contents)
         elif choice == 3 and method_of_access == 'auto':
+            menu()
+        elif choice == 3 and method_of_access == 'manual':
+            software_update_settings()
+        elif choice == 4 and method_of_access == 'auto':
             print("\nAutomatic updates have been disabled, so you will no longer see this message. You can always check for updates \nmanually, or re-enable automatic updates, by going to Settings > Software Updates.")
             auto_updates_disabled = True
             save_settings('update_configuration', [auto_updates_disabled])
@@ -4227,6 +4263,10 @@ def warp_debug():
                     defensive_items=['dummy', 'dummy2'], has_beaten_game=False, has_completed_expert_mode=False, save_location=3)    # Create a dummy player so the game doesn't crash
     if warp_location == "save":
         ask_save()
+    elif warp_location == "release":
+        contents = input("Spoofed version number: ")
+        method_of_access = input("Method of access: ")
+        download_release_notes(method_of_access, contents)
     elif warp_location == "newVer" or warp_location == "newver":
         ask_download_update(method_of_access=input("Method of access = "), contents=b"3.0.1")
     elif warp_location == "end":
@@ -4898,7 +4938,8 @@ def refresh():
             count = 0
             files_to_remove = ["savedprefs.dat", "displaysettings.dat", "crash.log", "graphicsproperties.dat",
                                "updateprefs.dat", "startup.dat", "config/updateprefs.dat", "config/update_configuration.dat",
-                               "temp/latest_stable_ver.txt", "sdbackup.dat", "sdbackup2.dat", "sdbackup3.dat"]    # List of files that aren't necessary.
+                               "temp/latest_stable_ver.txt", "sdbackup.dat", "sdbackup2.dat", "sdbackup3.dat",
+                               "temp/release_notes.txt"]    # List of files that aren't necessary.
             for file in files_to_remove:
                 try:
                     os.remove(file)  # Remove the item
