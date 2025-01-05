@@ -102,5 +102,5 @@ Key- [x] = A patch for this bug has been implemented.
 - 'Default settings' option is currently broken. (MINOR USABILITY) [x]
 - Add 'graphics_configuration.dat' and 'audio_settings.dat' to the data format daemon @ line 897. [x]
 - The game crashes if no name is entered when starting a new game. [x]
-- The two guards you fight in chapter three to get the hyper potion are broken - the second fight doesn't trigger. []
+- The two guards you fight in chapter three to get the hyper potion are broken - the second fight doesn't trigger. [x]
 
