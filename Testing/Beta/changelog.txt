@@ -1,7 +1,4 @@
-NOTE:
-This changelog is just a draft!! Chances are it'll still look pretty similar
-when v3.0.0 is released, but it is still subject to change.
-
+CHANGELOG:
 
 Welcome to DeathTrap Dungeon v3.0.0! This is a massive release; I originally
 only planned this to be a small bugfix update to DTD v2.9.5, however this
@@ -10,7 +7,7 @@ As such, this has shaped up to be the biggest release of the game since the
 initial version launched back in 2019.
 
 So, buckle up because this is gonna be a pretty sizeable changelog! You'll
-also notice that I have now organised the changelog into categories, which
+also notice that I have now organised it into categories, which
 makes it much easier to read. Plus, if you don't care about a certain section,
 you can now just skip over it entirely.
 
@@ -44,6 +41,10 @@ NEW FEATURES:
 - Added a new 'Gameplay' option in the Settings menu, which enables you to change many
  game-related settings! This menu can be used to change the balancing of the game,
  control how gameplay is saved, and more.
+
+- Added an option in the 'Gameplay' menu, which allows you to configure how the game
+ handles saving. You can turn off confirmation when overwriting an existing save
+ file, or write protect save files to prevent them from being overwritten.
 
 - A preview of your save file is now shown before loading or deleting a saved game.
  It shows progress, held items, defensive items, and more - meaning you know exactly 
@@ -79,7 +80,7 @@ NEW FEATURES:
 
 
 SMALLER FEATURES / QUALITY OF LIFE IMPROVEMENTS:
-- Increased spacing between dialogues and messages to aid with readability.
+- Increased spacing between dialogues and messages to help readability.
 
 - Removed certain prompts from error messages and dialogues, which makes them
  easier to read.
@@ -100,10 +101,6 @@ SMALLER FEATURES / QUALITY OF LIFE IMPROVEMENTS:
 - The ability to download and install the Pygame module in-game has been removed due
  to security, stability and maintenance concerns. (See here for more information:
  https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program)
-
-- Added an option in the 'Gameplay' menu, which allows you to configure how the game
- handles saving. You can turn off confirmation when overwriting an existing save
- file, or write protect save files to prevent them from being overwritten.
 
 - When changing settings, changes are now saved in the background, which means you
  no longer have to wait for the setting to be applied to continue.
@@ -137,6 +134,9 @@ SMALLER FEATURES / QUALITY OF LIFE IMPROVEMENTS:
 
 - When a new version is available, the game now shows the new version number in
  the update dialogue. It also now shows the version of the game that you're currently on.
+
+- Re-wrote the code for viewing an update's release notes. It now makes less network
+ requests by caching the release notes, and is overall more robust.
 
 - Moved several options around in the Settings menu, and renamed many options, to
  make the menu more approachable for new users.
