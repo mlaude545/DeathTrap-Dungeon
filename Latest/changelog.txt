@@ -1,227 +1,231 @@
-This is a hotfix update, meaning that a serious bug was discovered after
-the release of DTD V2.9. This update aims to patch out the following issues:
+Welcome to DeathTrap Dungeon v3.0.0! This is a massive release; I originally
+only planned this to be a small bugfix update to DTD v2.9.5, however this
+plan changed when I realised there was still work to be done to the game.
+As such, this has shaped up to be the biggest release of the game since the
+first version launched back in 2019.
+
+So, buckle up because this is gonna be a pretty sizeable changelog! You'll
+also notice that I have now organised the changelog into categories, which
+makes it much easier to read. Plus, if you don't care about a certain section,
+you can now just skip over it entirely.
 
--Fixed numerous flaws with the update system; the Windows version of the game
- would crash when viewing a new release's changelog, and all versions of the 
- game encountered issues when downloading updates.
+Anyways, enough waffle, here's what's new:
 
--Fixed more menu-related bugs.
+===============================================================================
 
--Fixed a bug where save files the game was beaten under would display incorrectly
- sometimes.
+NEW FEATURES:
+- Introducing Expert Mode, a new game mode unlocked after beating the game! Expert
+ Mode sees you play through the game with no checkpoints, basic stats and items,
+ and more. See if you can become a true DTD master and overcome the challenge!
 
-The original changelog for DTD V2.9 can be found below:
+- The game now features a brand new UI (named 'Flow')! Flow is now the
+ default menu theme in the game. It leverages Unicode characters to form
+ bold lines and subtle gradients.
 
-====================================
+- The Classic theme has also been introduced, which is essentially just the
+ same UI as seen in previous releases of DTD. This can be enabled in the Settings
+ menu if you prefer the older visual style.
 
--The story has finally been completed! See if you can overcome the challenge 
- and beat 
-the game! You never know, you may unlock something cool as a reward…
+- Added a new Basic Graphics Mode, aimed at systems which cannot render the Unicode
+ characters used for both the Flow theme and for various in-game graphics. This is enabled
+ automatically if it is needed, but can also be enabled manually in Settings if desired.
 
+- Tonnes - and I mean TONNES - of improvements and optimisations to the game under the hood.
+ Listing them all would be impossible, but many sections of the game engine have been
+ re-written from scratch. As a result, the game is far more stable, much more
+ efficient, and the source code is far easier to understand and maintain.
 
+- Added a new 'Gameplay' option in the Settings menu, which enables you to change many
+ game-related settings! This menu can be used to change the balancing of the game,
+ control how gameplay is saved, and more.
 
--Much of the game’s artwork has been updated, and now looks much more detailed!
+- Added a new critical hit mechanic, which adds a new layer of challenge to the game.
 
+- Added an 'Advanced' option in the settings menu! This allows you to troubleshoot
+ issues, see diagnostic data, and fix common problems when playing DTD.
 
+- The Music Player (unlocked after beating the game) receives a much needed facelift!
+ More songs are included, and the new 'Now Playing' screen shows information
+ about the currently playing track.
 
--Certain sections of the story have been entirely rewritten from scratch! This 
- is a needed 
-change as the quality of my writing has increased since I initially 
- started working on the game.
+- Reworked the update system from the ground up. You can now choose a custom download
+ directory in the Source Code version. The Windows version has also received some needed
+ attention; it now updates via a separate process, meaning that upgrades are now fully
+ automatic (you no longer have to go through the installer after the update has downloaded.)
+ 
+- Massively improved crash and error handling. The game now shows more detailed error info,
+ along with clear options to get help, or report a bug.
+ 
+- Re-wrote the final boss fight from scratch, making it more balanced, fair, and challenging.
 
 
+SMALLER FEATURES / QUALITY OF LIFE IMPROVEMENTS:
+- Increased spacing between dialogues and messages to aid with readability.
 
--The system used for handling updates has been rebuilt from the ground up; it’s 
- now much 
-simpler and allows for downloading updates straight through the game 
- without even having 
-to launch your browser, in addition to some other cool features.
+- Removed certain prompts from error messages and dialogues, which makes them
+ easier to read.
 
--The update server has also gone through some major changes, which allow for
- update checks to be much more reliable and speedy.
+- Loads of performance improvements and speed optimisations thanks to refactoring
+ the code. From navigating menus, to loading save files, everything now feels so
+ much faster.
 
+- A preview of your save file is now shown before loading or deleting a saved game.
+ It shows progress, held items, defensive items, and more, meaning you know exactly 
+ which save file you're about to load or delete.
 
+- Removed the Player Profile menu, as it is no longer needed with the new save
+ data preview feature.
 
--The UI receives a much needed overhaul! Menus have been redesigned, dialog has 
- been 
-rewritten... pretty much every single UI element has been retouched; the 
- result it an interface 
-that feels both fresh and familiar, and is more consistent 
- than ever before.
+- Save Data Conversion utility is now far better integrated into
+ the game, and has been re-written almost entirely from the ground up. It now
+ works much faster, has a much higher success rate and wider compatibility.
 
+- Renamed the 'Options' menu to 'Settings'.
 
+- The ability to download and install the Pygame module in-game has been removed due
+ to security, stability and maintenance concerns. (See here for more information:
+ https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program)
 
--Error messages have all been revised; the wording has been tweaked to make the 
- problem 
-easier to diagnose, and additional options have been added allowing you to 
- see the exact cause 
-of the error, or even get help online.
+- Added an option in the 'Gameplay' menu, which allows you to configure how the game
+ handles saving. You can turn off confirmation when overwriting an existing save
+ file, or write protect save files to prevent them from being overwritten.
 
--The entirety of the soundtrack has been remixed and re-recorded; these new mixes follow
- all the same motifs as the classic soundtrack and are instantly recogniseable by veteran
- players, however the new sound is fresher than ever.
+- When changing settings, changes are now saved in the background, which means you
+ no longer have to wait for the setting to be applied to continue.
+ 
+- A prompt is now shown before submitting a bug report, which lists diagnostic data
+ that greatly helps when fixing bugs. The game now asks the user to include this
+ data in their bug report.
 
+- A new save format is now in use, which improves efficiency and decreases
+ load times. It also removes many legacy values that were needed in older versions of
+ DTD but are no longer required, which means saved games occupy less disk space.
 
+- Removed Small Display Mode, due to incompatibilities with the latest operating
+ systems.
 
--Improved error support; errors are now logged to a file, making finding help easier
- than ever!
+- Added a new "Refresh" option, which erases unneeded data files, logs, and other
+ temporary files to reduce the game's footprint and fix certain issues. To access it,
+ go to Settings > Advanced > Refresh.
 
+- Added an option to reset all settings to their defaults. To access this, go to
+ Settings > Advanced > Default Settings.
 
+- Completely re-engineered the audio system; the game's audio files are now not
+ only higher quality, but occupy far less disk space.
 
--A new feature has been added to the “Options” screen, allowing you to report any bugs 
- you may 
-encounter! 
+- Removed the Windows Themes option from the extras unlocked when the game is beaten,
+ due to compatibility issues on newer versions of Windows.
 
+- Updates now download and install much faster thanks to the updater code being
+ re-written. (Like insanely faster - around 89% faster for the Windows version! *)
 
+- When a new version is available, the game now shows the new version number in
+ the update dialogue.
 
--A new feature has been added, which optimises the game for use on smaller displays! 
- To enable 
-this, enter the Options screen and select “Display Settings”, then choose 
- “Optimise for smaller 
-display”.
+- Moved several options around in the Settings menu, and renamed many options, to
+ make the menu more approachable for new users.
 
+- Removed nested menus from within certain menus and submenus. This makes navigation
+ much faster, as well as making the menus more informative at a glance (for example,
+ 'Mute / Unmute Audio' from previous versions is now just 'Mute Audio' or 'Unmute
+ Audio', depending on what state the audio is in.)
 
+- Altered the behaviour of the Hyper Potion. It now temporarily raises both your
+ attack and defence levels to 25 - before it only affected attack. It can also be
+ used during the final boss fight now!
 
--Added a new ‘Examine’ option during battles! This allows you to instantly check handy 
- info, such
-as the enemy’s health, attack damage, and even their held item!
+- The game no longer attempts to resize the window if it is detected that you are
+ not using a Windows operating system. This means that error output that was shown on
+ startup in most previous versions of the game is no longer shown! (This error output
+ was harmless, but annoying.)
 
 
+BUGFIXES:
+- Fixed a major bug where the Windows version of the game wouldn't start on
+ newer versions of the OS. This fix has also been backported to DTD v2.9.5.
 
--Many quality-of-life improvements across the board; faster load times, speedier navigation… 
- it
- all adds up to make the game even more enjoyable.
+- Fixed a bug where certain corrupted save data would cause the game to crash
+ upon loading.
 
+- Fixed a bug where Save Data Conversion Utility could corrupt save data under
+ certain circumstances.
 
+- Fixed a bug where checking for updates would return a "Server cannot be reached"
+ error message, even with an active internet connection.
 
--The game now sports a new logo!
+- Fixed a bug where the game would crash when examining certain chests.
 
+- Fixed a bug where a battle could be triggered when examining the chest
+ before the High Ranking Guard.
 
+- Fixed many weird scaling issues when running the game on Mac or Linux.
 
--Downloading and installing modules from within the game just got a whole lot easier! The 
- entire
- system has been re-engineered; modules now download far quicker, and the experience 
- has been
- streamlined.
+- Fixed a bug where automatic update checks could sometimes leave the game in
+ an extremely unstable state.
 
+- Fixed issues where player stats could be displayed incorrectly if a save file was
+ loaded, then a new game was started.
 
+- Fixed a bug where audio would play even if it was muted on the post-credits
+ screen.
 
--Save Data Conversion Utility has been upgraded to V1.7! This update brings support for upgrading
+- Fixed an issue where some menus would crash the game if the player entered an
+ invalid option, followed by a valid option immediately after.
 
- save data created in DTD V2.8 to the new save format used in this version, as well as performance
+- Fixed a bug which meant that the quantity of inventory items would not update
+ correctly sometimes when using or gaining an item.
 
- and stability improvements.
+- Fixed a longstanding issue where not entering anything on menus could sometimes cause
+ the game to freeze, and then crash.
 
+- Fixed a bug where the game would sometimes allow you to delete a save file that
+ didn't exist.
 
+- Fixed a bug where the developer option 'Error Logging' could sometimes be enabled on
+ it's own, which led to the game becoming massively unstable.
 
--Save Data Recovery Utility has been upgraded to V1.5! This update brings support for the new 
+- Fixed a longstanding issue where battles could sometimes continue after the enemy
+ had been defeated.
 
- save format in use in this version of the game, as well as performance and stability 
- enhancements.
+- Fixed a bug which would cause the incorrect defensive items to be shown during battles.
 
+- Fixed a bug when successfully escaping from battles would cause the game to act in
+ strange ways.
 
+- Fixed a longstanding issue where some menus would display using an older style,
+ which made the menus look inconsistent.
 
--Certain sections of the game with delays between lines have been sped up.
+- Fixed a bug where the game could sometimes take a long time to start with Auto Updates
+ enabled if the connection to the internet was unstable.
+ 
+- Fixed a bug where starting a new game, creating a character, then immediately quitting to
+ the main menu would lead to the incorrect stats and items being displayed.
+ 
+- Fixed a bug where some submenus within the 'Settings' menu would return to the main menu,
+ instead of back to the previous menu as expected.
 
+===============================================================================
 
+So there it is, the massive list of all that's new in DTD v3.0.0! Thanks for
+your continued support for all these years, the game wouldn't be where it is
+now without your help.
 
--The post-battle screen has been redesigned; items dropped by guards now give detailed 
- descriptions 
-on what they do/what stats they affect.
+I am also taking this opportunity to change the release cycle. Before, I would
+release major updates occasionally, and increment the version number by 0.1 (for
+example, DTD v2.8 to v2.9). Very rarely I would release an interim release to
+address major bugs, but this approach meant that bugfixes were extremely slow to
+roll out.
 
+To address this issue, the new release model will still increment the version
+number by 0.1 for major releases, however I will aim to release regular bugfix
+updates and patches. These will focus solely on fixing bugs, not adding anything
+new. For example, this is DTD v3.0.0, the bugfixes will be released in the format
+v3.0.1. The next major update will be DTD v3.1.0.
 
 
--Many new tracks have been added! Namely the final boss theme, the credits theme, the 
- post-credits
- theme, and many more.
 
-
-
--Fixed a bug where fleeing from battles wouldn’t work properly.
-
-
-
--Fixed a bug where missing audio data would cause the game to crash.
-
-
-
--Fixed a bug which caused the player’s name to be erased upon converting a save file.
-
-
-
--Fixed a bug where the game would crash when checking for updates if the player was offline.
-
-
-
--Fixed a bug where using the smokescreen wouldn’t work correctly.
-
-
-
--Fixed a bug where save data couldn’t be deleted if it was corrupt/incompatible.
-
-
-
--Fixed a bug which would cause the game to crash upon attempting to install modules without 
- an 
-internet connection.
-
-
-
--Fixed a bug which caused certain inventory items to duplicate.
-
--Fixed a bug which made it impossible to delete a corrupt or incompatible save file.
-
-
-
--Fixed a bug where save data could be corrupted if the game was exited during a save.
-
-
-
--Fixed a bug where health during battles could be displayed below zero.
-
-
-
--Fixed many more menu-related bugs
-
-
-
--Many performance improvements and smaller bugfixes.
-
-====================================
-
-
-
-So there it is; the huge list of everything new in DeathTrap Dungeon V2.9! As briefly 
-mentioned above,
-the loss of Mr. Chapple is what sparked me to finish this game; if it 
-wasn’t for him, this game wouldn’t
-even exist. I still can’t get over how far this game 
-has come, and without the continued support of him
-and many other people, it would never
-have been possible.
-
-
-
-Also, this release is planned to be the final major release of DeathTrap Dungeon, 
-with a bugfix update
-planned for the near future. It’s gonna be a shame to leave 
-this game in the past, but rest assured this
-won’t be the last time you see my name 
-on a piece of software. I owe so much to this game; the amount 
-of stuff I’ve learned 
-whilst working on it over the past three years is truly something.
-
-
-
-And finally, thanks to you, the player; by simply playing this game, you’ve fuelled my passion 
-for programming
-and have acted as the major driving force behind the game being in the finished 
-state it’s in now. It 
-wouldn’t have ever been possible without you, and I hope you stick around
-for my future projects.
-
-
-
-Hey, thanks for reading this far! As always, please be sure to report any bugs you may encounter, 
-and 
-enjoy the game!
+* This figure was worked out using download times of 4 mins 21 seconds to completely install
+ an update in the last stable release (DTD v2.9.5), vs 28 seconds on the new updater on 
+ the Windows version. This figure will undoubtedly vary depending on a number of factors, 
+ such as your internet speed.
