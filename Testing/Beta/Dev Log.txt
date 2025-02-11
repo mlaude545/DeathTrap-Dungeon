@@ -1,106 +1,23 @@
-DTD v3.0.0 DEV LOG:
+DTD v3.0.1 DEV LOG:
 
-This file is intended to help with the development of DTD v3.0.0. It contains the following:
-- TO DO = A list of things that are currently in the works. The comments in [square brackets] are the current state of the implementation.
-- CANCELLED FEATURES = A list of features that were planned to be in the final release, but were removed. This list is subject to change and the features could get re-added in future releases.
-- COMPLETED FEATURES / PATCHES = A non-comprehensive list of completed features - a full list of implementations can be found in the final version's changelog.
-- KNOWN BUGS = This list mainly contains regressions introduced in beta builds. For bugs patched from the last stable release (v2.9.5), check the changelog.
+This file is intended to help with the development of DTD v3.0.1. This release will be a smaller
+interim release, so this dev log will mostly just contain small changes and bugs that need to be 
+fixed.
 
+===================================================
 
-TO DO:
-- Migrate all battles dependent on enemy defeated logic over to the new enemies_defeated array system. [IN PROGRESS]
-- Migrate single-use global variables over to the new single_use_item array system. [IN PROGRESS] 
+PROPOSED MINOR CHANGES:
+This lists off the proposed minor changes that I plan to make for this release.
 
-
-PROPOSED FEATURES THAT WERE REMOVED:
-- Migrate the old self-hosted bug tracking system to Bugzilla. [CANCELLED - USE GITHUB ISSUE TRACKING INSTEAD]
-- Add a "What's New?" option to the Advanced Settings menu, which acts as the changelog. [REMOVED - NOT NECESSARY]
-- Add a Bug Report feature - if the game crashes, send reports (containing diagnostic data) via email or telegram to myself. [CANCELLED - the system worked but added more complexity, plus the Telegram API key used would be publicly available thanks to the open source license.)
-- Add an autosave feature (Was implemented in early betas but was removed when porting the save system over to the new codebase. Might get added back in a future update.)
-- Re-implement release notes option when a new version is available [POSTPONED TO NEXT FEATURE UPDATE]
-- Clean up legacy variables, rename them to better follow Python best practice.	[IN PROGRESS - WILL BE A MAJOR FOCUS IN THE NEXT FEATURE UPDATE]
-
-
-COMPLETED FEATURES / PATCHES:
-- Migrated the save/load menus over to the new save system.
-- Changed save format to better reflect the game's new codebase.
-- Tied the legacy SavePoint variable to a Player attribute.
-- Categorised the inventory into a dictionary, which is a Player attribute.
-- Items are now in a class along with their artwork and descriptions, which hugely tidies up the code.
-- Battles are now completely migrated over to the new system.
-- Prompt is now shown to convert an incompatible save file.
-- Depreciated the following legacy battle logic functions:
-	> MusicBattle, JuniperMusic, encounterGuard, encounterHighRank, encounterJuniper
-- Added some descriptions to songs in the Audio Player.
-- Defensive items (such as weapons obtained by defeating enemies) are now stored as an array, which is an
-attribute of the Player class. 
-- Fully implement Expert Mode. [COMPLETE - REQUIRES TESTING]
-- Complete the removal of obsoleted features:
-	> Windows Themes [DONE]
-	> Save Data Recovery Utility, backup save file creation [DONE]
-- Fix the battle system; finish migrating enemies over to a native class system. [COMPLETE - REQUIRES TESTING]
-- Update Save Data Conversion Utility to support new save format. [DONE]
-- Auto updates are now initiated in a more controlled way.
-- Re-write the update system from scratch, which brings many benefits:
-	> The Windows version of the game updates through a standalone program, which downloads the latest version's .exe file directly from GitHub, and overwrites the older version with this data. This has many benefits such as way faster downloads as well as being a true in-place upgrade (wasn't how it worked before.)
-	> The Source Code version now lets you save to a custom directory rather than forcing you to use ~/Downloads.
-- Re-worked the 'Refresh' option to avoid issues which may have led to mass file deletion and data loss in the Source Code version (not ideal!)
-- Re-wrote the update system from scratch:
-	> Only check for updates every 3 days to avoid issues when starting the game with an unstable internet connection.
-	> Host the latest stable version on GitHub - depreciate the old update server in the near future.
-- Change how the game handles data files:
-	> Rename some files to make them easier to identify
-	> Locate data files in directories to clean up the game's working directory
-- Integrate items into some sort of class system (objects with attributes rather than a bunch of random 
-variables floating around in the code.)	
-- Add descriptions for tracks in the Audio Player.
-- Add a test_chest function and implement it into the debug warp utility. 
-- Migrate the theming engine over to new system (reliant on strings rather than several booleans.)
+- None yet!
 
 
 KNOWN BUGS:
+Key: [ ] - I am aware of the bug but haven't fixed it yet.
+     [x] - A patch has been implemented to address the bug.
 
-Key- [x] = A patch for this bug has been implemented.
-   - [] = I am aware of the bug, but haven't gotten around to patching it.
-
-- 'Never ask for overwrite confirmation' option currently doesn't work. (MINOR) [x]
-- Some text formatting bugs during battles. (MINOR VISUAL) [x]
-- 'Erase save data' option returns to the main Options screen, instead of the Advanced screen as expected. (MINOR) [x]
-- When Basic Graphics is enabled, the game still thinks the Flow theme is active if you enter the Themes menu. (MINOR VISUAL) [x]
-- Some crashes assosiated with playing under a previously converted save file. (MODERATE CRASH) [x]
-- Some menu titles aren't rendered when Basic Graphics or Classic Theme is enabled. (MINOR VISUAL) [x]
-- Converted save data returns 'None' for defensive_items, leading to crashes. (MAJOR CRASH) [] 
-- Trying to exit the inventory during the Juniper boss fight causes the Smokescreen to be used, and the player is warped back to Chapter 2. (MAJOR) [x]
-- Entering an invalid integer on the 'New version available' screen causes the game to quit abrubtly. (MAJOR CRASH) [x]
-- Player held items are formatted strangely when using the 'Examine' option duirng battles. (MINOR VISUAL) [x]
-- The message shown when the user manually checks for updates when there are no new versions available is duplicated. (MINOR VISUAL) [x]
-- During the first battle in the game, using the 'Examine' option shows 'No defensive items held'. (MINOR VISUAL) [x]
-- When running the data format daemon, the game places all files into the 'config' directory, instead of also populating the 'data' directory. (MAJOR) [x]
-- Using the 'Examine' option in battles shows the defensive items list incorrectly - doesn't remove the 'No defensive items' message from the start of the list. (MINOR VISUAL) [x]
-- When Pygame is not installed, the game ignores this and allows audio to be unmuted when applying default settings. (MAJOR) [x]
-- Small visual bug when Basic Graphics is enabled - the warning text shown when the game is started shows that classic theme is also enabled, which is not always the case and is unneccesary. (MINOR VISUAL) [x]
-- When viewing stats after a battle, the 'Held items' list is empty even if you are holding items. (MINOR VISUAL) [x]
-- The game crashes when you check for updates manually without an internet connection (auto updates don't have this issue.) [x] (I was unable to reproduce this one, so I've marked it as patched but I'll keep a close eye on this.)
-- When choosing 'Report a Bug' in Settings, choosing 'Report a Bug Online', then immediately cancelling out of the dialogue - a broken Error Handler screen appears. (MINOR VISUAL) [x]
-- Similar to the above bug, except the same broken Error Handler screen is also triggered after the Help Page is loaded if you choose 'Continue'. (MINOR VISUAL) [x]
-- The game crashes after winning a battle if Pygame isn't installed. (MAJOR - CRASH) [x]
-- If you aren't holding any inventory items, a message displaying this should be shown in the save file preview - currently nothing is shown. (MINOR VISUAL) [x]
-- Chapter 2 is extremely unstable and crashes if you look at it wrong. (MAJOR - CRASH) [x]
-- Fix a small graphical bug that causes a block character to appear when the game is started. (MINOR VISUAL) [x]
-- If Basic Graphics is enabled automatically, the active theme is still shown as Flow in the 'choose a new theme' dialogue. (MINOR VISUAL) [x]
-- Auto update check is skipped entirely if you don't have an active internet connection - it doesn't check the cached file as intended. (MINOR) [x]
-- If you access the game info screen with the Basic theme active, this causes a mishmash of different themes to apply across the game after this. (MINOR VISUAL) [x]
-- 'Skip and Don't Ask Again' option doesn't disable auto updates as it should. (MINOR) [x]
-- The game crashes on startup if auto updates are enabled when you're connected to a network that can't provide internet. (MAJOR - CRASH) [x] (haven't been able to reproduce this so marked as fixed.)
-- During battles, enemies and players can show as having negative health.(MINOR VISUAL) []
-- Loaf of bread in Chapter 4 doesn't report that the player's health has been restored. (MINOR VISUAL) []
-- Chapters 5, 6, and 7 show enemy_ID instead of the word 'area' sometimes. (MINOR VISUAL) [x]
-- Chapter 7 - healing potion gets added to defensive items list and not to inventory. (MAJOR) [x]
-- Chapter 7 - guard doesn't stay dead!! Player gets softlocked because they can't progress past the guard. (MAJOR) [x]
-- Restart from checkpoint crashes the game if Pygame is not installed. (MINOR CRASH) [x]
-- The diagnostic screen shown before reporting a bug does not respect Flow Basic theme. (MINOR VISUAL) [x]
-- 'Default settings' option is currently broken. (MINOR USABILITY) [x]
-- Add 'graphics_configuration.dat' and 'audio_settings.dat' to the data format daemon @ line 897. [x]
-- The game crashes if no name is entered when starting a new game. [x]
-- The two guards you fight in chapter three to get the hyper potion are broken - the second fight doesn't trigger. [x]
-
+- Trying to escape from first guard does not work. []
+- With classic theme enabled, the 'audio is muted' message still follows the Flow style. []
+- With classic theme enabled, the diagnostic screen (IE when you try reporting a bug) shows 'none' where the footer would normally
+ be. []
+- 
