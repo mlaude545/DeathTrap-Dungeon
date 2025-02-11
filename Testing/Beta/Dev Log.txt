@@ -26,3 +26,4 @@ Key: [ ] - I am aware of the bug but haven't fixed it yet.
 - You can use the Smokescreen during the Juniper fight, but this shouldn't work. (MAJOR) []
 - The game crashes when you use the smokescreen and Pygame is missing. (Seems to be an issue with line 502) (MAJOR CRASH) []
 - The game crashes when you escape from a battle and Pygame is missing. (Again, line 502.) (MAJOR CRASH) []
+- Made the game more robust against crashes that could happen if corrupt save data was present. [x]
