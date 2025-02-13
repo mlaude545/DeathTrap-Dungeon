@@ -107,11 +107,11 @@ DeathTrap Dungeon uses mostly Python builtin modules and works without any extra
    ```
 3. Make the game executable
    ```sh
-   chmod u+x main.py
+   chmod u+x DTD.py
    ```
 5. Run the game
    ```js
-   ./main.py
+   ./DTD.py
    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
