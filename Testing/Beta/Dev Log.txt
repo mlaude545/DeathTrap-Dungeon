@@ -18,7 +18,7 @@ KNOWN BUGS:
 Key: [ ] - I am aware of the bug but haven't fixed it yet.
      [x] - A patch has been implemented to address the bug.
 
-- Trying to escape from first guard does not work - the guard keeps attacking. (MAJOR) []
+- You currently can't escape from battles by using the 'Run' option. (MAJOR) [x]
 - With classic theme enabled, the 'audio is muted' message still follows the Flow style. (MINOR VISUAL) []
 - With classic theme enabled, the diagnostic screen (IE when you try reporting a bug) shows 'none' where the footer would normally
  be. (MINOR VISUAL) []
