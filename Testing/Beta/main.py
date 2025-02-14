@@ -1462,12 +1462,12 @@ def load_save_data(slot_filename):
             retrieved_data = player_name, save_location, damage, max_health, health, game_beaten, expert_mode_beaten, inventory, defensive_items
             # Data is returned in this format - retrieved data, is_corrupt, is_incompatible
             return retrieved_data, False, False     # Return the data as a tuple, and don't raise any flags which would indicate an error.
-    except FileNotFoundError:
+    except FileNotFoundError:   # This exception is raised if the save file doesn't exist.
         return None, False, False   # Return 'none', so the game can handle a non-existent save file.
-    except EOFError and pickle.UnpicklingError and AttributeError as e:
-        return None, True, False    # Returns the 'is_corrupt' flag, indicating a corrupt save.
-    except ValueError:
+    except ValueError:  # A value error is raised when the save file is not compatible with this version of DTD.
         return None, False, True    # Returns the 'is_incompatible' flag, which tells the game that the selected save data is incompatible.
+    except Exception:   # Any other exceptions and the game treats this as if the save is corrupt.
+        return None, True, False    # Returns the 'is_corrupt' flag, indicating a corrupt save.
 
 
 def display_slot_info(slot_number, player_name, game_beat):
