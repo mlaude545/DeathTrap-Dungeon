@@ -31,3 +31,5 @@ Key: [ ] - I am aware of the bug but haven't fixed it yet.
 - Gameplay settings menu has several stability issues. [x]
 - Add newline to the 'disable basic graphics' prompt. [x]
 - Change the wording of the 'enable basic graphics' menu. [x]
+- The game crashes when certain choices are made at the start of Chapter 2. [x]
+- Removed some references to depreciated global variables and added extra comments - the source code is easier to understand. [x]
