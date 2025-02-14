@@ -1,0 +1,59 @@
+CHANGELOG:
+
+Welcome to DeathTrap Dungeon v3.0.1 - the first patch for version 3 of
+the game!
+
+DTD v3.0.0 was released last week and so far has proved to be extremely
+stable! I am super happy with how the release went and I really hope
+it lived up to expectations.
+
+Regardless of how stable the first release in the DTD v3.0.0 series was
+however, there will always be some bugs that slipped through! This
+update is a smaller 'interim' release; designed to patch some bugs and
+introduce some minor changes to improve the user experience.
+
+So, let's see what's new this time around!
+
+===============================================================================
+
+BUGS FIXED:
+- Fixed a major issue when escaping from battles by using the 'Run' option
+ didn't work.
+
+- Fixed several crashes that could occur after battles if the Pygame
+ dependency was missing.
+
+- Made the game more resilient to crashes when a corrupted save file was
+ present.
+
+- Fixed a minor visual bug where the 'Audio is muted' message shown
+ when you start a new game wasn't displayed in the correct syle if
+ a different theme was active.
+
+- Fixed an issue where you could use the Smokescreen item during the
+ final fight, when this shouldn't be possible.
+
+- Fixed some stability issues in the inventory.
+
+- Fixed several menus that could cause the game to crash if you made
+ an invalid selection, then a valid one immediately after.
+
+- Fixed several crashes that could occur if you made certain choices
+ at the start of Chapter 2.
+
+
+OTHER SMALLER CHANGES:
+- Add a newline to the start of the 'disable basic graphics' prompt.
+
+- Add a newline to the main menu in the Basic or Classic style to make
+ it more consistent to the Flow appearance.
+
+- Reworded the warning shown before you manually enable Basic Graphics mode
+ to make it slightly more clear what the mode actually does and when it should
+ be used.
+
+- Made some optimisations to the code under the hood; removed some references
+ to depreciated global variables and left several more comments to make the
+ source code more readable.
+
+===============================================================================
