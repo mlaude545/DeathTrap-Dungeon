@@ -1,35 +1,22 @@
-DTD v3.0.1 DEV LOG:
+DTD v3.0.2 DEV LOG:
 
-This file is intended to help with the development of DTD v3.0.1. This release will be a smaller
-interim release, so this dev log will mostly just contain small changes and bugs that need to be 
-fixed.
+This release will be a smaller interim release, so this dev log will mostly just contain 
+small changes and bugs that need to be fixed.
 
 ===================================================
 
 PROPOSED MINOR CHANGES:
 This lists off the proposed minor changes that I plan to make for this release.
 
-- Reduce the spoofed player stats when using the debug save option (or remove the option entirely.)
-- Remove debug mode; hasn't really seen any active development for a few years now.
+- Add a 'cancel' option to the menu shown when downloading an update on the source code version.
 
+
+IMPLEMENTED CHANGES:
+- None yet.
 
 
 KNOWN BUGS:
 Key: [ ] - I am aware of the bug but haven't fixed it yet.
      [x] - A patch has been implemented to address the bug.
 
-- You currently can't escape from battles by using the 'Run' option. (MAJOR) [x]
-- With classic theme enabled, the 'audio is muted' message still follows the Flow style. (MINOR VISUAL) [x]
-- With classic theme enabled, the diagnostic screen (IE when you try reporting a bug) shows 'none' where the footer would normally
- be. (MINOR VISUAL) [x]
-- When using the classic theme, the menu doesn't include a newline. (MINOR VISUAL) [x]
-- You can use the Smokescreen during the Juniper fight, but this shouldn't work. (MAJOR) [x]
-- The game crashes when you use the smokescreen and Pygame is missing. (Seems to be an issue with line 502) (MAJOR CRASH) [x]
-- The game crashes when you escape from a battle and Pygame is missing. (Again, line 502.) (MAJOR CRASH) [x]
-- Made the game more robust against crashes that could happen if corrupt save data was present. [x]
-- Inventory crashes the game if you input an invalid choice, then a valid one. [x]
-- Gameplay settings menu has several stability issues. [x]
-- Add newline to the 'disable basic graphics' prompt. [x]
-- Change the wording of the 'enable basic graphics' menu. [x]
-- The game crashes when certain choices are made at the start of Chapter 2. [x]
-- Removed some references to depreciated global variables and added extra comments - the source code is easier to understand. [x]
+- 
