@@ -1,0 +1,5 @@
+This folder contains historical releases of DTD. These
+older versions are unsupported and haven't seen new additions
+or bugfixes in years, so unless you specifically want an 
+older version it's recommended you stick to the latest stable 
+version.
